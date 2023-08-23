@@ -17,8 +17,25 @@ class Handler {
 
   Handler({required this.logger}) {
     router = Router().plus;
-    connection = PostgreSQLConnection('apk.cmx.ru', 5432, 'template1',
-        username: 'postgres', password: 'apk', useSSL: true);
+
+    var env = Platform.environment;
+
+    String? host = env['PSHOST'];
+    int? port = int.parse(env['PSPORT'] ?? '0');
+    String? dbName = env['PSDBNAME'];
+    String? username = env['PSLOGIN'];
+    String? password = env['PSPASSWORD'];
+
+    if (host == null ||
+        port == 0 ||
+        dbName == null ||
+        username == null ||
+        password == null) {
+      throw Exception('Exception: Platform environments did not set');
+    }
+
+    connection = PostgreSQLConnection(host, port, dbName,
+        username: username, password: password, useSSL: true);
     repository = DBRepository(connection: connection);
   }
 
@@ -30,8 +47,18 @@ class Handler {
     await connection.open();
   }
 
-  Response _rootHandler(Request req) {
-    return Response.ok('Hello, world!\n');
+  Future<Response> _rootHandler(Request req) async {
+    logger.d('Request of all apps');
+    try {
+      var result = await repository.getApps();
+      if (result == null) {
+        return Response.internalServerError();
+      }
+      return Response.ok(json.encode(result));
+    } catch (e) {
+      logger.e(e.toString());
+      return Response.internalServerError();
+    }
   }
 
   Future<dynamic> _downloadFileHandler(Request request) async {
@@ -62,7 +89,10 @@ class Handler {
       String version = queryParams['version'];
       String arch = queryParams['arch'];
       String package = queryParams['package'];
-      File savedFile = parseAndSaveFile(body, fileName, package, arch);
+      File? savedFile = parseAndSaveFile(body, fileName, package, arch);
+      if (savedFile == null) {
+        return Response.internalServerError(body: 'Wrong platform settings');
+      }
       App app = App(
           name: fileName,
           package: package,

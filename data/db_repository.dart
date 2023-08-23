@@ -7,6 +7,15 @@ class DBRepository {
 
   DBRepository({required this.connection});
 
+  Future<List<Map<String, dynamic>>?> getApps() async {
+    PostgreSQLResult queryResult = await connection.query('SELECT * FROM apps');
+    if (queryResult.isEmpty) {
+      return null;
+    }
+    List<App> apps = queryResult.map((row) => App.fromPostgreSQL(row)).toList();
+    return apps.map((app) => app.toJson()).toList();
+  }
+
   Future<int> insertApp(App app) async {
     return await connection.execute(
         'INSERT INTO apps (name, version, path, arch, size, package, date) '

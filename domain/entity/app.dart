@@ -30,6 +30,17 @@ class App {
         package = row[6],
         date = row[7];
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'version': version,
+        'path': path,
+        'arch': arch,
+        'size': size,
+        'package': package,
+        'date': date.toString()
+      };
+
   @override
   String toString() => 'App $name, version $version';
 }
