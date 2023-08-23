@@ -28,15 +28,8 @@ class App {
         arch = row[4],
         size = row[5],
         package = row[6],
-        date = DateTime.parse(row[7]);
+        date = row[7];
 
   @override
   String toString() => 'App $name, version $version';
-
-  String toUpdateSQLValues() =>
-      'SET version = \'$version\', size = \'$size\', date = \'${date.toUtc().toIso8601String()}\' WHERE package = \'$package\'';
-
-  String toInsertSQLValues() =>
-      '(name, version, path, arch, size, package, date) '
-      'VALUES (\'$name\', \'$version\', \'$path\', \'$arch\', \'$size\', \'$package\', \'${date.toUtc().toIso8601String()}\')';
 }
