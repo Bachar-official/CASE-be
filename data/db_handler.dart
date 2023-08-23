@@ -102,7 +102,6 @@ class Handler {
           arch: arch,
           size: savedFile.lengthSync());
       var searchResult = await repository.searchAppName(app.name);
-      print(searchResult);
       if (searchResult.isEmpty) {
         logger.d('App name is new, saving');
         await repository.insertApp(app);

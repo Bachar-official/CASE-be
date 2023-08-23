@@ -41,6 +41,16 @@ class App {
         'date': date.toString()
       };
 
+  Map<String, dynamic> toSecureJson() => {
+        'id': id,
+        'name': name,
+        'version': version,
+        'arch': arch,
+        'size': size,
+        'package': package,
+        'date': date.toString()
+      };
+
   @override
   String toString() => 'App $name, version $version';
 }

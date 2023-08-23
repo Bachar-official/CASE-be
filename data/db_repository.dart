@@ -13,7 +13,7 @@ class DBRepository {
       return null;
     }
     List<App> apps = queryResult.map((row) => App.fromPostgreSQL(row)).toList();
-    return apps.map((app) => app.toJson()).toList();
+    return apps.map((app) => app.toSecureJson()).toList();
   }
 
   Future<int> insertApp(App app) async {
@@ -33,12 +33,13 @@ class DBRepository {
 
   Future<int> updateApp(App app) async {
     return await connection.execute(
-        'UPDATE apps SET version = @version, size = @size, date = @date '
+        'UPDATE apps SET version = @version, size = @size, date = @date, arch=@arch '
         'WHERE name = @name',
         substitutionValues: {
           "version": app.version,
           "size": app.size,
           "date": app.date.toUtc().toIso8601String(),
+          "arch": app.arch,
           "name": app.name
         });
   }

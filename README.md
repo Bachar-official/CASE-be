@@ -15,12 +15,12 @@
 ```
 CREATE TABLE public.apps (
 	id serial4 NOT NULL,
-	"name" varchar(40) NOT NULL,
-	"version" varchar(40) NOT NULL,
-	"path" varchar(40) NOT NULL,
-	arch varchar(40) NOT NULL,
+	"name" varchar(100) NOT NULL,
+	"version" varchar(100) NOT NULL,
+	"path" varchar(100) NOT NULL,
+	arch varchar(100) NOT NULL,
 	"size" int8 NOT NULL,
-	package varchar(40) NOT NULL,
+	package varchar(100) NOT NULL,
 	"date" date NOT NULL,
 	CONSTRAINT apps_pkey PRIMARY KEY (id)
 );
@@ -81,6 +81,8 @@ host/download/<название приложения>
     }
 ]
 ```
+
+Значения arch могут быть common, armv7, armv8, x86.
 
 ## Roadmap
 
