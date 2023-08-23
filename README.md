@@ -35,6 +35,45 @@ CREATE TABLE public.apps (
 * PSLOGIN = <имя пользователя БД>
 * PSPASSWORD = <пароль БД>
 
+## Компиляция бинарника
+
+* Установить [Dart SDK](https://dart.dev/get-darthttps:/).
+* Склонировать/скачать данный репозиторий.
+* Зайти в корневую папку репозитория и выполнить команду `dart compile exe bin/server.dart`.
+
+## Настройка на сервере в качестве демона (Linux)
+
+Создать файл с расширением .service следующего содержания и скопировать его в `/etc/systemd/system`
+
+```
+[Unit]
+Description=<Ваше описание>
+After=network.target
+[Install]
+WantedBy=multi-user.target
+[Service]
+Type=simple
+ExecStart=<пусть к исполняемому файлу>
+WorkingDirectory=<путь к папке с бинарником>
+Restart=always
+RestartSec=5
+StandardOutput=syslog
+StandartError=syslog
+SyslogIdentifier=%n
+Environment="APKPATH=<путь сохранения артефактов>"
+Environment="PSHOST=<хост БД>"
+Environment="PSPORT=<порт БД>"
+Environment="PSDBNAME=<имя БД>"
+Environment="PSLOGIN=<имя пользователя БД>"
+Environment="PSPASSWORD=<пароль БД>"
+```
+
+После этого перезагружаем systemctl: `sudo systemctl daemon-reload`
+
+Включаем службу: `sudo systemcel enable <название вашего сервиса>.service`
+
+Запуск службы: `sudo systemctl status <название вашего сервиса>.service`
+
 ## Загрузка файла
 
 Загрузка производится методом POST запроса на хост с портом 1337 и следующим payload:
