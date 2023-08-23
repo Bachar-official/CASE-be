@@ -11,7 +11,6 @@ import '../utils/parse_file.dart';
 final _router = Router().plus
   ..get('/', _rootHandler)
   ..get('/echo/<message>', _echoHandler)
-  ..post('/file', _fileHandler)
   ..get('/file', _downloadFile);
 
 Response _rootHandler(Request req) {
@@ -26,22 +25,6 @@ Response _echoHandler(Request request) {
 _downloadFile() {
   File result = File('A:\\merCi.apk');
   return download(filename: 'merci_latest.apk') >> result;
-}
-
-Future<Response> _fileHandler(Request request) async {
-  final String query = await request.readAsString();
-  try {
-    Map queryParams = jsonDecode(query);
-    String body = queryParams['body'];
-    String fileName = queryParams['fileName'];
-    File savedFile = parseAndSaveFile(body, fileName);
-  } on FormatException catch (e) {
-    return Response.badRequest(body: e.message);
-  } on Exception catch (_) {
-    return Response.badRequest(body: 'Unknown message');
-  }
-
-  return Response.ok('File received');
 }
 
 void main(List<String> args) async {
