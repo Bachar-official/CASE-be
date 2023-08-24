@@ -1,4 +1,4 @@
-# Cinimex app store (backend)
+# CASE - Cinimex App Storage for Enterprise (backend)
 
 ## Мотивация
 
