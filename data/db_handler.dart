@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:logger/logger.dart';
 import 'package:shelf_plus/shelf_plus.dart';
 import 'package:postgres/postgres.dart';
 
@@ -13,9 +12,8 @@ class Handler {
   late final RouterPlus router;
   late final PostgreSQLConnection connection;
   late final DBRepository repository;
-  final Logger logger;
 
-  Handler({required this.logger}) {
+  Handler() {
     router = Router().plus;
 
     var env = Platform.environment;
@@ -43,12 +41,14 @@ class Handler {
     router
       ..get('/', _rootHandler)
       ..get('/download/<name>', _downloadFileHandler)
-      ..post('/upload', _uploadFileHandler);
+      ..get('/image/<name>', _downloadImageHandler)
+      ..post('/upload', _uploadFileHandler)
+      ..post('/icon', _uploadIconHandler);
     await connection.open();
   }
 
   Future<Response> _rootHandler(Request req) async {
-    logger.d('Request of all apps');
+    print('Request of all apps');
     try {
       var result = await repository.getApps();
       if (result == null) {
@@ -56,39 +56,93 @@ class Handler {
       }
       return Response.ok(json.encode(result));
     } catch (e) {
-      logger.e(e.toString());
+      print(e.toString());
       return Response.internalServerError();
     }
   }
 
   Future<dynamic> _downloadFileHandler(Request request) async {
     String? name = request.params['name'];
-    logger.d('Request of downloading file with name $name');
+    print('Request of downloading file with name $name');
     if (name == null) {
-      logger.e('Empty name field');
+      print('Empty name field');
       return Response.notFound('Name is empty');
     }
-    List<App>? searchResult = await repository.searchApp(name);
-    if (searchResult == null || searchResult.isEmpty) {
-      logger.e('Records with name $name not found');
+    App? app = await repository.findApp(name);
+    if (app == null) {
+      print('Records with name $name not found');
       return Response.badRequest(body: 'Name not found');
     }
-    File apkFile = File(searchResult.first.path);
-    logger.i('File sent to download');
-    return download(filename: '${searchResult.first.name}-latest.apk') >>
-        apkFile;
+    File apkFile = File(app.path);
+    print('File sent to download');
+    return download(filename: '${app.name}-latest.apk') >> apkFile;
   }
 
-  Future<Response> _uploadFileHandler(Request request) async {
-    logger.d('Request of uploading new file');
+  Future<dynamic> _downloadImageHandler(Request request) async {
+    String? name = request.params['name'];
+    print('Request of downloading file with name $name');
+    if (name == null) {
+      print('Empty name field');
+      return Response.notFound('Name is empty');
+    }
+    App? app = await repository.findApp(name);
+    if (app == null) {
+      print('Records with name $name not found');
+      return Response.badRequest(body: 'Name not found');
+    }
+    String? iconPath = app.iconPath;
+    if (iconPath == null) {
+      return Response.notFound('App does not provide icon');
+    }
+    File iconFile = File(iconPath);
+    print('Image sent to download');
+    return download(filename: 'icon-${app.name}.png') >> iconFile;
+  }
+
+  Future<Response> _uploadIconHandler(Request request) async {
+    print('Request to upload an icon');
     final String query = await request.readAsString();
     try {
       Map queryParams = jsonDecode(query);
-      String body = queryParams['body'];
-      String fileName = queryParams['fileName'];
-      String version = queryParams['version'];
-      String arch = queryParams['arch'];
-      String package = queryParams['package'];
+      String? appName = queryParams['name'];
+      String? body = queryParams['body'];
+      if (appName == null || body == null) {
+        print('Missed query parameters');
+        return Response.badRequest(body: 'Missed query parameters');
+      }
+      App? app = await repository.findApp(appName);
+      if (app == null) {
+        return Response.notFound('App with name $appName not found');
+      }
+      File iconFile = parseAndSaveIcon(body, app);
+      app = app.copyWith(iconPath: iconFile.path);
+      repository.updateAppIcon(app);
+    } catch (e) {
+      print(e.toString());
+      return Response.badRequest(body: e.toString());
+    }
+    print('Icon update successfully');
+    return Response.ok('Icon updated successfully');
+  }
+
+  Future<Response> _uploadFileHandler(Request request) async {
+    print('Request of uploading new file');
+    final String query = await request.readAsString();
+    try {
+      Map queryParams = jsonDecode(query);
+      String? body = queryParams['body'];
+      String? fileName = queryParams['fileName'];
+      String? version = queryParams['version'];
+      String? arch = queryParams['arch'];
+      String? package = queryParams['package'];
+      String? description = queryParams['description'];
+      if (body == null ||
+          fileName == null ||
+          version == null ||
+          arch == null ||
+          package == null) {
+        return Response.badRequest(body: 'Missed required fields');
+      }
       File? savedFile = parseAndSaveFile(body, fileName, package, arch);
       if (savedFile == null) {
         return Response.internalServerError(body: 'Wrong platform settings');
@@ -100,23 +154,24 @@ class Handler {
           path: savedFile.absolute.path,
           date: await savedFile.lastModified(),
           arch: arch,
+          description: description,
           size: savedFile.lengthSync());
       var searchResult = await repository.searchAppName(app.name);
       if (searchResult.isEmpty) {
-        logger.d('App name is new, saving');
+        print('App name is new, saving');
         await repository.insertApp(app);
       } else {
-        logger.d('App update found, replacing');
+        print('App update found, replacing');
         await repository.updateApp(app);
       }
     } on FormatException catch (e) {
-      logger.e(e.message);
+      print(e.message);
       return Response.badRequest(body: e.message);
     } on Exception catch (e) {
-      logger.e(e.toString());
+      print(e.toString());
       return Response.badRequest(body: e.toString());
     }
-    logger.i('File upload successfully');
+    print('File upload successfully');
     return Response.ok('File upload successfully');
   }
 }

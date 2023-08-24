@@ -44,10 +44,26 @@ class DBRepository {
         });
   }
 
+  Future<int> updateAppIcon(App app) async {
+    return await connection.execute(
+        'UPDATE apps SET icon_path = @iconPath WHERE name = @name',
+        substitutionValues: {"iconPath": app.iconPath, "name": app.name});
+  }
+
   Future<PostgreSQLResult> searchAppName(String name) async {
     return await connection.query(
         'SELECT * from apps WHERE LOWER (name) = @name',
         substitutionValues: {"name": name.toLowerCase()});
+  }
+
+  Future<App?> findApp(String name) async {
+    PostgreSQLResult queryResult = await connection.query(
+        'SELECT * from apps WHERE LOWER (name) = @name',
+        substitutionValues: {"name": name.toLowerCase()});
+    if (queryResult.isEmpty) {
+      return null;
+    }
+    return App.fromPostgreSQL(queryResult.first);
   }
 
   Future<List<App>?> searchApp(String name) async {

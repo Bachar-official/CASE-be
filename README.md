@@ -22,6 +22,8 @@ CREATE TABLE public.apps (
 	"size" int8 NOT NULL,
 	package varchar(100) NOT NULL,
 	"date" date NOT NULL,
+	icon_path varchar(100) NULL,
+	description varchar(400) NULL,
 	CONSTRAINT apps_pkey PRIMARY KEY (id)
 );
 ```
@@ -76,7 +78,7 @@ Environment="PSPASSWORD=<пароль БД>"
 
 ## Загрузка файла
 
-Загрузка производится методом POST запроса на хост с портом 1337 и следующим payload:
+Загрузка производится методом POST запроса на хост /host/upload с портом 1337 и следующим payload:
 
 ```
 {
@@ -84,11 +86,25 @@ Environment="PSPASSWORD=<пароль БД>"
     "version": "Версия",
     "arch": "Архитектура",
     "package": "Пакет",
+    "description": "Описание приложения",
     "body": "Файл в BASE64"
 }
 ```
 
 При попытке загрузить приложение с тем же именем произойдёт замена файла и обновится запись в БД с новой версией.
+
+## Загрузка иконки
+
+Загрузка производится методом POST запроса на хост /host/icon с портом 1337 и следующим payload:
+
+```
+{
+    "name": "Название приложения",
+    "body": "Файл иконки в BASE64"
+}
+```
+
+Если имя не найдётся или формат файла будет не png, запрос не пройдёт.
 
 ## Скачивание файла
 

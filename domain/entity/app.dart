@@ -9,6 +9,8 @@ class App {
   final String package;
   final int size;
   final DateTime date;
+  final String? iconPath;
+  final String? description;
 
   App(
       {this.id,
@@ -18,7 +20,32 @@ class App {
       required this.size,
       required this.version,
       required this.package,
-      required this.date});
+      required this.date,
+      this.iconPath,
+      this.description});
+
+  App copyWith(
+          {int? id,
+          String? name,
+          String? version,
+          String? path,
+          String? arch,
+          String? package,
+          int? size,
+          DateTime? date,
+          String? iconPath,
+          String? description}) =>
+      App(
+          id: id ?? this.id,
+          name: name ?? this.name,
+          version: version ?? this.version,
+          path: path ?? this.path,
+          arch: arch ?? this.arch,
+          package: package ?? this.package,
+          size: size ?? this.size,
+          date: date ?? this.date,
+          iconPath: iconPath ?? this.iconPath,
+          description: description ?? this.description);
 
   App.fromPostgreSQL(PostgreSQLResultRow row)
       : id = row[0],
@@ -28,7 +55,9 @@ class App {
         arch = row[4],
         size = row[5],
         package = row[6],
-        date = row[7];
+        date = row[7],
+        iconPath = row[8],
+        description = row[9];
 
   Map<String, dynamic> toJson() => {
         'id': id,
