@@ -47,6 +47,7 @@ class Handler {
     await connection.open();
   }
 
+  /// Ответчик на GET запрос в корневой каталог
   Future<Response> _rootHandler(Request req) async {
     print('Request of all apps');
     try {
@@ -61,6 +62,7 @@ class Handler {
     }
   }
 
+  /// Ответчик на GET запрос /download/<name>
   Future<dynamic> _downloadFileHandler(Request request) async {
     String? name = request.params['name'];
     print('Request of downloading file with name $name');
@@ -78,6 +80,7 @@ class Handler {
     return download(filename: '${app.name}-latest.apk') >> apkFile;
   }
 
+  /// Ответчик на GET запрос /image/<name>
   Future<dynamic> _downloadImageHandler(Request request) async {
     String? name = request.params['name'];
     print('Request of downloading file with name $name');
@@ -99,6 +102,7 @@ class Handler {
     return download(filename: 'icon-${app.name}.png') >> iconFile;
   }
 
+  /// Ответчик на POST запрос /icon
   Future<Response> _uploadIconHandler(Request request) async {
     print('Request to upload an icon');
     final String query = await request.readAsString();
@@ -125,6 +129,7 @@ class Handler {
     return Response.ok('Icon updated successfully');
   }
 
+  /// Ответчик на POST запрос /upload
   Future<Response> _uploadFileHandler(Request request) async {
     print('Request of uploading new file');
     final String query = await request.readAsString();
@@ -156,8 +161,8 @@ class Handler {
           arch: arch,
           description: description,
           size: savedFile.lengthSync());
-      var searchResult = await repository.searchAppName(app.name);
-      if (searchResult.isEmpty) {
+      App? searchResult = await repository.findApp(app.name);
+      if (searchResult == null) {
         print('App name is new, saving');
         await repository.insertApp(app);
       } else {

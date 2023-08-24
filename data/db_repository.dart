@@ -7,6 +7,7 @@ class DBRepository {
 
   DBRepository({required this.connection});
 
+  /// Запросить все приложения
   Future<List<Map<String, dynamic>>?> getApps() async {
     PostgreSQLResult queryResult = await connection.query('SELECT * FROM apps');
     if (queryResult.isEmpty) {
@@ -16,6 +17,7 @@ class DBRepository {
     return apps.map((app) => app.toSecureJson()).toList();
   }
 
+  /// Вставить новое приложение
   Future<int> insertApp(App app) async {
     return await connection.execute(
         'INSERT INTO apps (name, version, path, arch, size, package, date) '
@@ -31,6 +33,7 @@ class DBRepository {
         });
   }
 
+  /// Обновить существующее приложение
   Future<int> updateApp(App app) async {
     return await connection.execute(
         'UPDATE apps SET version = @version, size = @size, date = @date, arch=@arch '
@@ -44,18 +47,14 @@ class DBRepository {
         });
   }
 
+  /// Обновить иконку приложения
   Future<int> updateAppIcon(App app) async {
     return await connection.execute(
         'UPDATE apps SET icon_path = @iconPath WHERE name = @name',
         substitutionValues: {"iconPath": app.iconPath, "name": app.name});
   }
 
-  Future<PostgreSQLResult> searchAppName(String name) async {
-    return await connection.query(
-        'SELECT * from apps WHERE LOWER (name) = @name',
-        substitutionValues: {"name": name.toLowerCase()});
-  }
-
+  /// Найти приложение по имени
   Future<App?> findApp(String name) async {
     PostgreSQLResult queryResult = await connection.query(
         'SELECT * from apps WHERE LOWER (name) = @name',
@@ -64,13 +63,5 @@ class DBRepository {
       return null;
     }
     return App.fromPostgreSQL(queryResult.first);
-  }
-
-  Future<List<App>?> searchApp(String name) async {
-    PostgreSQLResult searchResult = await searchAppName(name);
-    if (searchResult.isNotEmpty) {
-      return searchResult.map((row) => App.fromPostgreSQL(row)).toList();
-    }
-    return null;
   }
 }
