@@ -1,4 +1,4 @@
-# CASE - Cinimex App Storage for Enterprise (backend)
+# CASE is App Storage for Enterprise (backend)
 
 ## Мотивация
 
