@@ -10,32 +10,49 @@
 
 Название схемы - public
 
-Создать таблицу скриптом:
+### Создание таблиц
+
+Таблица "app":
 
 ```
-CREATE TABLE public.apps (
-	id serial4 NOT NULL,
+CREATE TABLE public.app (
+	id int8 NOT NULL DEFAULT nextval('apps_id_seq'::regclass),
 	"name" varchar(100) NOT NULL,
 	"version" varchar(100) NOT NULL,
-	"path" varchar(100) NOT NULL,
-	arch varchar(100) NOT NULL,
-	"size" int8 NOT NULL,
 	package varchar(100) NOT NULL,
-	"date" date NOT NULL,
 	icon_path varchar(100) NULL,
 	description varchar(400) NULL,
 	CONSTRAINT apps_pkey PRIMARY KEY (id)
 );
 ```
 
+Таблица "apk":
+
+```
+CREATE TABLE public.apk (
+	"size" int8 NOT NULL,
+	"path" varchar(400) NOT NULL,
+	arch varchar(40) NOT NULL,
+	id bigserial NOT NULL,
+	app_id int8 NOT NULL,
+	CONSTRAINT apk_pk PRIMARY KEY (id)
+);
+
+
+-- public.apk foreign keys
+
+ALTER TABLE public.apk ADD CONSTRAINT apk_fk FOREIGN KEY (app_id) REFERENCES public.app(id);
+```
+
 Установить переменные окружения:
 
-* APKPATH = <путь сохранения артефактов>
-* PSHOST = <хост БД>
-* PSPORT = <порт БД>
-* PSDBNAME = <имя БД>
-* PSLOGIN = <имя пользователя БД>
-* PSPASSWORD = <пароль БД>
+* PORT = <порт запуска сервера>. По умолчанию 1337.
+* WORKPATH = <путь сохранения артефактов>
+* PGHOST = <хост БД>
+* PGPORT = <порт БД>
+* DBNAME = <имя БД>
+* DBUSERNAME = <имя пользователя БД>
+* DBPASSWORD = <пароль БД>
 
 ## Компиляция бинарника
 
@@ -62,12 +79,13 @@ RestartSec=5
 StandardOutput=syslog
 StandartError=syslog
 SyslogIdentifier=%n
-Environment="APKPATH=<путь сохранения артефактов>"
-Environment="PSHOST=<хост БД>"
-Environment="PSPORT=<порт БД>"
-Environment="PSDBNAME=<имя БД>"
-Environment="PSLOGIN=<имя пользователя БД>"
-Environment="PSPASSWORD=<пароль БД>"
+Environment="WORKPATH=<путь сохранения артефактов>"
+Environment="PGHOST=<хост БД>"
+Environment="PGPORT=<порт БД>"
+Environment="DBNAME=<имя БД>"
+Environment="DBUSERNAME=<имя пользователя БД>"
+Environment="DBPASSWORD=<пароль БД>"
+Environment="PORT=<порт хоста>"
 ```
 
 После этого перезагружаем systemctl: `sudo systemctl daemon-reload`

@@ -5,6 +5,7 @@ import 'package:shelf_plus/shelf_plus.dart';
 import 'package:postgres/postgres.dart';
 
 import '../domain/entity/app.dart';
+import '../domain/entity/env.dart';
 import '../utils/parse_file.dart';
 import 'db_repository.dart';
 
@@ -12,28 +13,12 @@ class Handler {
   late final RouterPlus router;
   late final PostgreSQLConnection connection;
   late final DBRepository repository;
+  final Env env;
 
-  Handler() {
+  Handler({required this.env}) {
     router = Router().plus;
-
-    var env = Platform.environment;
-
-    String? host = env['PSHOST'];
-    int? port = int.parse(env['PSPORT'] ?? '0');
-    String? dbName = env['PSDBNAME'];
-    String? username = env['PSLOGIN'];
-    String? password = env['PSPASSWORD'];
-
-    if (host == null ||
-        port == 0 ||
-        dbName == null ||
-        username == null ||
-        password == null) {
-      throw Exception('Exception: Platform environments did not set');
-    }
-
-    connection = PostgreSQLConnection(host, port, dbName,
-        username: username, password: password, useSSL: true);
+    connection = PostgreSQLConnection(env.pgHost, env.pgPortInt, env.dbName,
+        username: env.dbUsername, password: env.dbPassword, useSSL: true);
     repository = DBRepository(connection: connection);
   }
 
