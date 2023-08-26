@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:shelf_plus/shelf_plus.dart';
 import 'package:postgres/postgres.dart';
 
+import '../domain/entity/apk.dart';
 import '../domain/entity/app.dart';
+import '../domain/entity/arch.dart';
 import '../domain/entity/env.dart';
 import '../utils/parse_file.dart';
 import 'db_repository.dart';
@@ -24,16 +26,17 @@ class Handler {
 
   Future<void> init() async {
     router
-      ..get('/', _rootHandler)
-      ..get('/download/<name>', _downloadFileHandler)
-      ..get('/image/<name>', _downloadImageHandler)
-      ..post('/upload', _uploadFileHandler)
-      ..post('/icon', _uploadIconHandler);
+      ..get('/apps', _getAppsHandler)
+      ..get('/apps/<package>/<arch>/download', _downloadFileHandler)
+      ..get('/apps/<package>/icon', _downloadImageHandler)
+      ..post('/apps/<package>/upload', _uploadAPKHandler)
+      ..post('/apps/<package>/info', _infoHandler)
+      ..patch('/apps/<package>/info', _updateInfoHandler);
     await connection.open();
   }
 
-  /// Ответчик на GET запрос в корневой каталог
-  Future<Response> _rootHandler(Request req) async {
+  /// Ответчик на GET запрос в каталог /apps
+  Future<Response> _getAppsHandler(Request req) async {
     print('Request of all apps');
     try {
       var result = await repository.getApps();
@@ -47,36 +50,37 @@ class Handler {
     }
   }
 
-  /// Ответчик на GET запрос /download/<name>
+  /// Ответчик на GET запрос /apps/<package>/<arch>/download
   Future<dynamic> _downloadFileHandler(Request request) async {
-    String? name = request.params['name'];
-    print('Request of downloading file with name $name');
-    if (name == null) {
-      print('Empty name field');
-      return Response.notFound('Name is empty');
+    String? package = request.params['package'];
+    String? architectire = request.params['arch'];
+    print(
+        'Request of downloading file with package $package and arch $architectire');
+    if (package == null || architectire == null) {
+      print('Empty name of arch field');
+      return Response.badRequest(body: 'Name of arch is empty');
     }
-    App? app = await repository.findApp(name);
-    if (app == null) {
-      print('Records with name $name not found');
-      return Response.badRequest(body: 'Name not found');
+    APK? apk = await repository.findApkByPackage(
+        package, getArchFromString(architectire));
+    if (apk == null) {
+      return Response.notFound('APK not found');
     }
-    File apkFile = File(app.path);
-    print('File sent to download');
-    return download(filename: '${app.name}-latest.apk') >> apkFile;
+    File apkFile = File(apk.path);
+    return download(filename: '$package-$architectire.apk') >> apkFile;
   }
 
   /// Ответчик на GET запрос /image/<name>
   Future<dynamic> _downloadImageHandler(Request request) async {
-    String? name = request.params['name'];
-    print('Request of downloading file with name $name');
-    if (name == null) {
+    String? package = request.params['package'];
+    print('Request of downloading file with package $package');
+    if (package == null) {
       print('Empty name field');
-      return Response.notFound('Name is empty');
+      return Response.badRequest(body: 'Package is empty');
     }
-    App? app = await repository.findApp(name);
+    App? app = await repository.findAppByPackage(package);
     if (app == null) {
-      print('Records with name $name not found');
-      return Response.badRequest(body: 'Name not found');
+      print('Records with package $package not found');
+      return Response.notFound('Name not found');
     }
     String? iconPath = app.iconPath;
     if (iconPath == null) {
@@ -87,73 +91,35 @@ class Handler {
     return download(filename: 'icon-${app.name}.png') >> iconFile;
   }
 
-  /// Ответчик на POST запрос /icon
-  Future<Response> _uploadIconHandler(Request request) async {
-    print('Request to upload an icon');
-    final String query = await request.readAsString();
-    try {
-      Map queryParams = jsonDecode(query);
-      String? appName = queryParams['name'];
-      String? body = queryParams['body'];
-      if (appName == null || body == null) {
-        print('Missed query parameters');
-        return Response.badRequest(body: 'Missed query parameters');
-      }
-      App? app = await repository.findApp(appName);
-      if (app == null) {
-        return Response.notFound('App with name $appName not found');
-      }
-      File iconFile = parseAndSaveIcon(body, app);
-      app = app.copyWith(iconPath: iconFile.path);
-      repository.updateAppIcon(app);
-    } catch (e) {
-      print(e.toString());
-      return Response.badRequest(body: e.toString());
-    }
-    print('Icon update successfully');
-    return Response.ok('Icon updated successfully');
-  }
-
-  /// Ответчик на POST запрос /upload
-  Future<Response> _uploadFileHandler(Request request) async {
+  /// Ответчик на POST запрос /apps/<package>/upload
+  Future<Response> _uploadAPKHandler(Request request) async {
     print('Request of uploading new file');
     final String query = await request.readAsString();
     try {
+      String? package = request.params['package'];
       Map queryParams = jsonDecode(query);
       String? body = queryParams['body'];
-      String? fileName = queryParams['fileName'];
-      String? version = queryParams['version'];
       String? arch = queryParams['arch'];
-      String? package = queryParams['package'];
-      String? description = queryParams['description'];
-      if (body == null ||
-          fileName == null ||
-          version == null ||
-          arch == null ||
-          package == null) {
+      if (body == null || arch == null || package == null) {
         return Response.badRequest(body: 'Missed required fields');
       }
-      File? savedFile = parseAndSaveFile(body, fileName, package, arch);
-      if (savedFile == null) {
-        return Response.internalServerError(body: 'Wrong platform settings');
+      final Arch architecture = getArchFromString(arch);
+
+      int? appId = await repository.getAppId(package);
+      if (appId == null) {
+        return Response.notFound('App with package $package not found');
       }
-      App app = App(
-          name: fileName,
-          package: package,
-          version: version,
-          path: savedFile.absolute.path,
-          date: await savedFile.lastModified(),
-          arch: arch,
-          description: description,
-          size: savedFile.lengthSync());
-      App? searchResult = await repository.findApp(app.name);
-      if (searchResult == null) {
-        print('App name is new, saving');
-        await repository.insertApp(app);
-      } else {
-        print('App update found, replacing');
-        await repository.updateApp(app);
-      }
+
+      File savedFile = parseAndSaveAPK(
+          b64file: body, package: package, arch: architecture, env: env);
+
+      APK apk = APK(
+          appId: appId,
+          arch: architecture,
+          size: savedFile.lengthSync(),
+          path: savedFile.path);
+      int code = await repository.insertApk(apk);
+      return Response.ok('File saved with code $code');
     } on FormatException catch (e) {
       print(e.message);
       return Response.badRequest(body: e.message);
@@ -161,7 +127,76 @@ class Handler {
       print(e.toString());
       return Response.badRequest(body: e.toString());
     }
-    print('File upload successfully');
-    return Response.ok('File upload successfully');
+  }
+
+  /// Ответчик на POST /apps/<package>/info
+  Future<Response> _infoHandler(Request request) async {
+    String? package = request.params['package'];
+    print('Request to upload an info about package $package');
+    final String query = await request.readAsString();
+    try {
+      Map queryParams = jsonDecode(query);
+      String? icon = queryParams['icon'];
+      String? version = queryParams['version'];
+      String? name = queryParams['name'];
+      String? description = queryParams['description'];
+      if (icon == null || version == null || name == null || package == null) {
+        return Response.badRequest(body: 'Missed query parameters');
+      }
+      App? app = await repository.findApp(name);
+      if (app != null) {
+        return Response(409, body: 'App $package already exist');
+      }
+      File iconFile = parseAndSaveIcon(
+          iconBase64: icon, name: name, package: package, env: env);
+      App newApp = App(
+          description: description,
+          iconPath: iconFile.path,
+          name: name,
+          package: package,
+          version: version);
+      var dbResult = await repository.insertApp(newApp);
+      return Response.ok('App created with code $dbResult');
+    } on FormatException catch (e) {
+      return Response.badRequest(body: e.message);
+    } on Exception catch (e) {
+      return Response.internalServerError(body: e.toString());
+    }
+  }
+
+  /// Ответчик на PATCH /apps/<package>/info
+  Future<Response> _updateInfoHandler(Request request) async {
+    final String query = await request.readAsString();
+    try {
+      Map queryParams = jsonDecode(query);
+      String? icon = queryParams['icon'];
+      String? version = queryParams['version'];
+      String? name = queryParams['name'];
+      String? description = queryParams['description'];
+      if ((icon == null && version == null) || name == null) {
+        return Response.badRequest(body: 'Missed query parameters');
+      }
+      print('Request to update an info about name $name');
+      App? app = await repository.findApp(name);
+      if (app == null) {
+        return Response(404, body: 'App $name not found');
+      }
+      File? iconFile = icon != null
+          ? parseAndSaveIcon(
+              iconBase64: icon, name: name, package: app.package, env: env)
+          : null;
+      App newApp = App(
+          description: description,
+          iconPath: iconFile != null ? iconFile.path : app.iconPath,
+          name: name,
+          package: app.package,
+          version: version ?? app.version);
+      var dbResult = await repository.updateApp(newApp);
+      return Response.ok('App created with code $dbResult');
+    } on FormatException catch (e) {
+      return Response.badRequest(body: e.message);
+    } on Exception catch (e) {
+      return Response.internalServerError(body: e.toString());
+    }
   }
 }

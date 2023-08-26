@@ -5,7 +5,7 @@ class App {
   final String name;
   final String package;
   final String? iconPath;
-  final String description;
+  final String? description;
   final String version;
 
   App(
@@ -14,7 +14,7 @@ class App {
       required this.version,
       required this.package,
       this.iconPath,
-      required this.description});
+      this.description = 'Описания пока нет'});
 
   App copyWith(
           {int? id,
@@ -35,13 +35,16 @@ class App {
           iconPath: iconPath ?? this.iconPath,
           description: description ?? this.description);
 
-  App.fromPostgreSQL(PostgreSQLResultRow row)
-      : id = row[0],
-        name = row[1],
-        version = row[2],
-        package = row[3],
-        iconPath = row[4],
-        description = row[5];
+  factory App.fromPostgreSQL(PostgreSQLResultRow row) {
+    Map<String, dynamic> map = row.toColumnMap();
+    return App(
+        id: map['id'],
+        name: map['name'],
+        version: map['version'],
+        package: map['package'],
+        iconPath: map['icon_path'],
+        description: map['description']);
+  }
 
   Map<String, dynamic> toJson() => {
         'id': id,

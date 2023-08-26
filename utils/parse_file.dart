@@ -1,7 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/retry.dart';
+
 import '../domain/entity/app.dart';
+import '../domain/entity/arch.dart';
+import '../domain/entity/env.dart';
 
 /// Проверка, является ли файл из массива [bytes] картинкой PNG
 bool isPNG(List<int> bytes) {
@@ -17,28 +21,26 @@ bool isAPK(List<int> bytes) {
       bytes[3] == 0x04;
 }
 
-/// Сохранение APK файла, используя [fileBase64].
+/// Сохранение APK файла, используя [b64file].
 ///
 /// Кидает [FormatException], если формат файла неправильный.
-/// Возвращает [Null], если не проставлена переменная окружения.
 /// Возвращает [File], если всё прошло успешно.
-File? parseAndSaveFile(
-    String fileBase64, String fileName, String package, String arch) {
-  String? path = Platform.environment['APKPATH'];
-  if (path == null) {
-    return null;
-  }
-  final List<int> decodedBytes = base64Decode(fileBase64);
+File parseAndSaveAPK(
+    {required String b64file,
+    required String package,
+    required Arch arch,
+    required Env env}) {
+  final List<int> decodedBytes = base64Decode(b64file);
 
   if (!isAPK(decodedBytes)) {
     throw FormatException('Wrong APK format');
   }
 
-  if (!Directory('$path/$package').existsSync()) {
-    Directory('$path/$package').createSync(recursive: true);
+  if (!Directory('${env.workPath}/$package').existsSync()) {
+    Directory('${env.workPath}/$package').createSync(recursive: true);
   }
 
-  File result = File('$path/$package/$fileName-$arch.apk');
+  File result = File('${env.workPath}/$package/${arch.name}.apk');
   result.writeAsBytesSync(decodedBytes);
   return result;
 }
@@ -47,14 +49,22 @@ File? parseAndSaveFile(
 ///
 /// Кидает [FormatException], если картинка неподходящего формата.
 /// Возвращает [File], если всё прошло успешно.
-File parseAndSaveIcon(String iconBase64, App app) {
+File parseAndSaveIcon(
+    {required String iconBase64,
+    required String name,
+    required String package,
+    required Env env}) {
   final List<int> bytes = base64Decode(iconBase64);
 
   if (!isPNG(bytes)) {
     throw FormatException('Wrong icon format');
   }
 
-  File result = File('${File(app.path).parent.toString()}/icon.png');
+  if (!Directory('${env.workPath}/$package').existsSync()) {
+    Directory('${env.workPath}/$package').createSync(recursive: true);
+  }
+
+  File result = File('${env.workPath}/$package/icon.png');
   result.writeAsBytesSync(bytes);
   return result;
 }
