@@ -20,11 +20,7 @@ class App {
           {int? id,
           String? name,
           String? version,
-          String? path,
-          String? arch,
           String? package,
-          int? size,
-          DateTime? date,
           String? iconPath,
           String? description}) =>
       App(

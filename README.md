@@ -10,7 +10,31 @@
 
 Название схемы - public
 
-### Создание таблиц
+### Создание таблиц и полей
+
+Последовательность "apps_id_seq":
+
+```
+CREATE SEQUENCE public.apps_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+```
+
+Последовательность "apk_id_seq":
+
+```
+CREATE SEQUENCE public.apk_id_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 9223372036854775807
+	START 1
+	CACHE 1
+	NO CYCLE;
+```
 
 Таблица "app":
 
@@ -93,6 +117,29 @@ Environment="PORT=<порт хоста>"
 Включаем службу: `sudo systemcel enable <название вашего сервиса>.service`
 
 Запуск службы: `sudo systemctl status <название вашего сервиса>.service`
+
+## Создание записи "Приложение"
+
+Создание происходит путём отправки POST запроса на эндпоинт `HOST:PORT/apps/<имя пакета>/info` следующего payload:
+
+```
+{
+    "icon": "PNG в BASE64",
+    "version": "Версия",
+    "name": "Название приложения",
+    "description": "Описание" (может отсутствовать)
+}
+```
+
+## Обновление записи "Приложение"
+
+Обновление происходит путём отправки PATCH запроса на эндпоинт `/HOST:PORT/apps/<имя пакета>/info` следующего payload:
+
+```
+{
+    "icon": "PNG в BASE64" 
+}
+```
 
 ## Загрузка файла
 

@@ -50,10 +50,7 @@ File parseAndSaveAPK(
 /// Кидает [FormatException], если картинка неподходящего формата.
 /// Возвращает [File], если всё прошло успешно.
 File parseAndSaveIcon(
-    {required String iconBase64,
-    required String name,
-    required String package,
-    required Env env}) {
+    {required String iconBase64, required String package, required Env env}) {
   final List<int> bytes = base64Decode(iconBase64);
 
   if (!isPNG(bytes)) {

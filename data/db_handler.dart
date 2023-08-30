@@ -147,8 +147,8 @@ class Handler {
       if (app != null) {
         return Response(409, body: 'App $package already exist');
       }
-      File iconFile = parseAndSaveIcon(
-          iconBase64: icon, name: name, package: package, env: env);
+      File iconFile =
+          parseAndSaveIcon(iconBase64: icon, package: package, env: env);
       App newApp = App(
           description: description,
           iconPath: iconFile.path,
@@ -166,6 +166,8 @@ class Handler {
 
   /// Ответчик на PATCH /apps/<package>/info
   Future<Response> _updateInfoHandler(Request request) async {
+    String? package = request.params['package'];
+    print('Request to update an info about package $package');
     final String query = await request.readAsString();
     try {
       Map queryParams = jsonDecode(query);
@@ -173,24 +175,25 @@ class Handler {
       String? version = queryParams['version'];
       String? name = queryParams['name'];
       String? description = queryParams['description'];
-      if ((icon == null && version == null) || name == null) {
+      if ((icon == null ||
+              version == null ||
+              name == null ||
+              description == null) &&
+          package == null) {
         return Response.badRequest(body: 'Missed query parameters');
       }
-      print('Request to update an info about name $name');
-      App? app = await repository.findApp(name);
+      App? app = await repository.findAppByPackage(package!);
       if (app == null) {
         return Response(404, body: 'App $name not found');
       }
       File? iconFile = icon != null
-          ? parseAndSaveIcon(
-              iconBase64: icon, name: name, package: app.package, env: env)
+          ? parseAndSaveIcon(iconBase64: icon, package: app.package, env: env)
           : null;
-      App newApp = App(
-          description: description,
-          iconPath: iconFile != null ? iconFile.path : app.iconPath,
+      App newApp = app.copyWith(
+          iconPath: iconFile?.path,
+          version: version,
           name: name,
-          package: app.package,
-          version: version ?? app.version);
+          description: description);
       var dbResult = await repository.updateApp(newApp);
       return Response.ok('App created with code $dbResult');
     } on FormatException catch (e) {
