@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:shelf_plus/shelf_plus.dart';
 import 'package:postgres/postgres.dart';
 
@@ -8,6 +9,7 @@ import '../domain/entity/apk.dart';
 import '../domain/entity/app.dart';
 import '../domain/entity/arch.dart';
 import '../domain/entity/env.dart';
+import '../domain/entity/permission.dart';
 import '../domain/entity/user.dart';
 import '../utils/jwt_utils.dart';
 import '../utils/parse_file.dart';
@@ -27,7 +29,6 @@ class Handler {
   }
 
   Future<void> init() async {
-    await connection.open();
     router
       ..get('/apps', _getAppsHandler)
       ..get('/apps/<package>/<arch>/download', _downloadFileHandler)
@@ -35,8 +36,10 @@ class Handler {
       ..post('/apps/<package>/upload', _uploadAPKHandler)
       ..post('/apps/<package>/info', _infoHandler)
       ..post('/auth', _authHandler)
+      ..post('/auth/add', _createUserHandler)
       ..patch('/apps/<package>/info', _updateInfoHandler);
 
+    await connection.open();
     var isMigrated = await repository.migrate();
     if (isMigrated) {
       print('Migration done!\nDon\'t forget to update password!');
@@ -60,6 +63,47 @@ class Handler {
       return Response.unauthorized('Invalid username or password');
     }
     return Response.ok(generateJWT(user, env.passPhrase));
+  }
+
+  Future<Response> _createUserHandler(Request req) async {
+    print('Request to create new user');
+    final String query = await req.readAsString();
+    Map queryParams = jsonDecode(query);
+    String? token = queryParams['token'];
+    String? username = queryParams['username'];
+    String? password = queryParams['password'];
+    String? permission = queryParams['permission'];
+
+    if (token == null) {
+      return Response.unauthorized('Missed token');
+    }
+    if (username == null || password == null || permission == null) {
+      return Response.forbidden('Missed parameters');
+    }
+
+    try {
+      Map<String, dynamic> tokenPayload = parseJWT(token, env.passPhrase);
+      String? permissionStr = tokenPayload['permission'];
+
+      if (permissionStr == null) {
+        return Response.internalServerError(body: 'Something went wrong');
+      }
+
+      if (!parsePermission(tokenPayload).canManageUsers) {
+        return Response.forbidden('You don\'t have enough permissions!');
+      }
+
+      var result = await repository.addUser(
+          username, password, getPermissionFromString(permission));
+
+      return Response.ok('User added with code $result');
+    } on JWTExpiredException catch (e) {
+      print(e.message);
+      return Response.badRequest(body: 'Token expired');
+    } on Exception catch (e) {
+      print(e);
+      return Response.badRequest(body: e);
+    }
   }
 
   /// Ответчик на GET запрос в каталог /apps
@@ -124,9 +168,25 @@ class Handler {
       Map queryParams = jsonDecode(query);
       String? body = queryParams['body'];
       String? arch = queryParams['arch'];
+      String? token = queryParams['token'];
+
+      if (token == null) {
+        return Response.unauthorized('Missed authorization');
+      }
       if (body == null || arch == null || package == null) {
         return Response.badRequest(body: 'Missed required fields');
       }
+
+      Map<String, dynamic> tokenPayload = parseJWT(token, env.passPhrase);
+      String? permissionStr = tokenPayload['permission'];
+      if (permissionStr == null) {
+        return Response.internalServerError(body: 'Something went wrong');
+      }
+
+      if (!parsePermission(tokenPayload).canUpload) {
+        return Response.forbidden('You don\'t have enough permissions!');
+      }
+
       final Arch architecture = getArchFromString(arch);
 
       int? appId = await repository.getAppId(package);
@@ -144,6 +204,9 @@ class Handler {
           path: savedFile.path);
       int code = await repository.insertApk(apk);
       return Response.ok('File saved with code $code');
+    } on JWTExpiredException catch (e) {
+      print(e.message);
+      return Response.unauthorized('Token expired!');
     } on FormatException catch (e) {
       print(e.message);
       return Response.badRequest(body: e.message);
