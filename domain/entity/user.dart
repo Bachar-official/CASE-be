@@ -24,4 +24,9 @@ class User {
         'name': name,
         'permission': permission.name,
       };
+
+  Map<String, dynamic> toJWT() => {
+        'username': name,
+        'permission': permission.name,
+      };
 }

@@ -14,10 +14,11 @@ class DBRepository {
 
   /// Импровизированная миграция
   Future<bool> migrate() async {
-    PostgreSQLResult queryResult = await connection.query('SELECT * FROM user');
+    PostgreSQLResult queryResult =
+        await connection.query('SELECT * FROM "authorization"');
     if (queryResult.isEmpty) {
       await connection.execute(
-          'INSERT INTO user (name, password, permission) '
+          'INSERT INTO "authorization" (name, password, permission) '
           'VALUES (@name, @password, @permission)',
           substitutionValues: {
             'name': 'admin',
@@ -31,7 +32,7 @@ class DBRepository {
 
   /// Получение списка всех пользователей
   Future<List<Map<String, dynamic>>?> getUsers() async {
-    var queryResult = await connection.query('SELECT * from user');
+    var queryResult = await connection.query('SELECT * from "authorization"');
     if (queryResult.isEmpty) {
       return null;
     }
@@ -40,11 +41,26 @@ class DBRepository {
     return users.map((user) => user.toJson()).toList();
   }
 
+  /// Получение пользователя по кредам
+  Future<User?> getUserCredentials(String username, String password) async {
+    var queryResult = await connection.query(
+        'SELECT * from "authorization"'
+        ' WHERE name = @name AND password = @password',
+        substitutionValues: {
+          'name': username,
+          'password': hashString(password),
+        });
+    if (queryResult.isEmpty) {
+      return null;
+    }
+    return User.fromPostgreSQL(queryResult.first);
+  }
+
   /// Добавление нового пользователя
   Future<int> addUser(
       String username, String password, Permission permission) async {
     return await connection.execute(
-        'INSERT INTO user (name, password, permission) '
+        'INSERT INTO authorization (name, password, permission) '
         'VALUES (@name, @password, @permission)',
         substitutionValues: {
           'name': username,
@@ -56,7 +72,7 @@ class DBRepository {
   /// Обновление пароля у пользователя
   Future<int> updateUserPassword(String username, String password) async {
     return await connection.execute(
-        'UPDATE user SET password = @password'
+        'UPDATE authorization SET password = @password'
         'WHERE name = @username',
         substitutionValues: {
           'username': username,
@@ -66,16 +82,14 @@ class DBRepository {
 
   /// Удаление пользователя
   Future<int> deleteUser(String username) async {
-    return await connection.execute('DELETE FROM user WHERE name = @username',
+    return await connection.execute(
+        'DELETE FROM authorization WHERE name = @username',
         substitutionValues: {'name': username});
   }
 
   /// Запросить все приложения
   Future<List<Map<String, dynamic>>?> getApps() async {
     PostgreSQLResult queryResult = await connection.query('SELECT * FROM app');
-    if (queryResult.isEmpty) {
-      return null;
-    }
     List<App> apps = queryResult.map((row) => App.fromPostgreSQL(row)).toList();
     return apps.map((app) => app.toJson()).toList();
   }

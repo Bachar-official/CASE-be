@@ -8,6 +8,8 @@ import '../domain/entity/apk.dart';
 import '../domain/entity/app.dart';
 import '../domain/entity/arch.dart';
 import '../domain/entity/env.dart';
+import '../domain/entity/user.dart';
+import '../utils/jwt_utils.dart';
 import '../utils/parse_file.dart';
 import 'db_repository.dart';
 
@@ -22,23 +24,42 @@ class Handler {
     connection = PostgreSQLConnection(env.pgHost, env.pgPortInt, env.dbName,
         username: env.dbUsername, password: env.dbPassword, useSSL: true);
     repository = DBRepository(connection: connection);
-    repository.migrate().then((res) => {
-          if (res)
-            {print('Migration done!\n Don\'t forget to update password!')}
-          else
-            {print('Migration don\'t needed')}
-        });
   }
 
   Future<void> init() async {
+    await connection.open();
     router
       ..get('/apps', _getAppsHandler)
       ..get('/apps/<package>/<arch>/download', _downloadFileHandler)
       ..get('/apps/<package>/icon', _downloadImageHandler)
       ..post('/apps/<package>/upload', _uploadAPKHandler)
       ..post('/apps/<package>/info', _infoHandler)
+      ..post('/auth', _authHandler)
       ..patch('/apps/<package>/info', _updateInfoHandler);
-    await connection.open();
+
+    var isMigrated = await repository.migrate();
+    if (isMigrated) {
+      print('Migration done!\nDon\'t forget to update password!');
+    } else {
+      print('Migration don\'t needed.');
+    }
+  }
+
+  /// Ответчик на POST запрос в каталог /auth
+  Future<Response> _authHandler(Request req) async {
+    print('Request to authenticate');
+    final String query = await req.readAsString();
+    Map queryParams = jsonDecode(query);
+    String? username = queryParams['username'];
+    String? password = queryParams['password'];
+    if (username == null || password == null) {
+      return Response.badRequest(body: 'Missed username or password');
+    }
+    User? user = await repository.getUserCredentials(username, password);
+    if (user == null) {
+      return Response.unauthorized('Invalid username or password');
+    }
+    return Response.ok(generateJWT(user, env.passPhrase));
   }
 
   /// Ответчик на GET запрос в каталог /apps
@@ -46,9 +67,6 @@ class Handler {
     print('Request of all apps');
     try {
       var result = await repository.getApps();
-      if (result == null) {
-        return Response.internalServerError();
-      }
       return Response.ok(json.encode(result));
     } catch (e) {
       print(e.toString());

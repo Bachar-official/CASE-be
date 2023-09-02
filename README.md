@@ -36,10 +36,10 @@ CREATE SEQUENCE public.apk_id_seq
 	NO CYCLE;
 ```
 
-Таблица "user":
+Таблица "authorization":
 
 ```
-CREATE TABLE public."user" (
+CREATE TABLE public."authorization" (
 	id int8 NOT NULL DEFAULT nextval('users_id_seq'::regclass),
 	"name" varchar(100) NOT NULL,
 	"password" text NOT NULL,
@@ -48,10 +48,10 @@ CREATE TABLE public."user" (
 );
 ```
 
-Ограничения для таблицы "user":
+Ограничения для таблицы "authorization":
 
 ```
-ALTER TABLE public."user" ADD CONSTRAINT user_un UNIQUE (name);
+ALTER TABLE public."authorization" ADD CONSTRAINT user_un UNIQUE (name);
 ```
 
 Таблица "app":
