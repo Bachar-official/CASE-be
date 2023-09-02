@@ -12,6 +12,7 @@ import '../domain/entity/env.dart';
 import '../domain/entity/permission.dart';
 import '../utils/jwt_utils.dart';
 import '../utils/parse_file.dart';
+import 'app_handler.dart';
 import 'auth_handler.dart';
 import 'db_repository.dart';
 
@@ -20,6 +21,7 @@ class Handler {
   late final PostgreSQLConnection connection;
   late final DBRepository repository;
   late final AuthHandler authHandler;
+  late final AppHandler appHandler;
   final Env env;
 
   Handler({required this.env}) {
@@ -29,20 +31,24 @@ class Handler {
     repository = DBRepository(connection: connection);
 
     authHandler = AuthHandler(repository: repository, env: env);
+    appHandler = AppHandler(repository: repository, env: env);
   }
 
   Future<void> init() async {
     router
-      ..get('/apps', _getAppsHandler)
+      // Управление запросами к сущностям приложения
+      ..get('/apps', appHandler.getApps)
+      ..post('/apps/<package>/info', appHandler.createApp)
+      ..patch('/apps/<package>/info', appHandler.updateApp)
+      // Управление запросами к артефактам
       ..get('/apps/<package>/<arch>/download', _downloadFileHandler)
       ..get('/apps/<package>/icon', _downloadImageHandler)
       ..post('/apps/<package>/upload', _uploadAPKHandler)
-      ..post('/apps/<package>/info', _infoHandler)
+      // Управление запросами аутентификации
       ..post('/auth', authHandler.authenticate)
       ..post('/auth/add', authHandler.createUser)
       ..delete('/auth/delete', authHandler.deleteUser)
-      ..patch('/auth/password', authHandler.updatePassword)
-      ..patch('/apps/<package>/info', _updateInfoHandler);
+      ..patch('/auth/password', authHandler.updatePassword);
 
     await connection.open();
     var isMigrated = await repository.migrate();
@@ -50,18 +56,6 @@ class Handler {
       print('Migration done!\nDon\'t forget to update password!');
     } else {
       print('Migration don\'t needed.');
-    }
-  }
-
-  /// Ответчик на GET запрос в каталог /apps
-  Future<Response> _getAppsHandler(Request req) async {
-    print('Request of all apps');
-    try {
-      var result = await repository.getApps();
-      return Response.ok(json.encode(result));
-    } catch (e) {
-      print(e.toString());
-      return Response.internalServerError();
     }
   }
 
@@ -190,45 +184,6 @@ class Handler {
           package: package,
           version: version);
       var dbResult = await repository.insertApp(newApp);
-      return Response.ok('App created with code $dbResult');
-    } on FormatException catch (e) {
-      return Response.badRequest(body: e.message);
-    } on Exception catch (e) {
-      return Response.internalServerError(body: e.toString());
-    }
-  }
-
-  /// Ответчик на PATCH /apps/<package>/info
-  Future<Response> _updateInfoHandler(Request request) async {
-    String? package = request.params['package'];
-    print('Request to update an info about package $package');
-    final String query = await request.readAsString();
-    try {
-      Map queryParams = jsonDecode(query);
-      String? icon = queryParams['icon'];
-      String? version = queryParams['version'];
-      String? name = queryParams['name'];
-      String? description = queryParams['description'];
-      if ((icon == null ||
-              version == null ||
-              name == null ||
-              description == null) &&
-          package == null) {
-        return Response.badRequest(body: 'Missed query parameters');
-      }
-      App? app = await repository.findAppByPackage(package!);
-      if (app == null) {
-        return Response(404, body: 'App $name not found');
-      }
-      File? iconFile = icon != null
-          ? parseAndSaveIcon(iconBase64: icon, package: app.package, env: env)
-          : null;
-      App newApp = app.copyWith(
-          iconPath: iconFile?.path,
-          version: version,
-          name: name,
-          description: description);
-      var dbResult = await repository.updateApp(newApp);
       return Response.ok('App created with code $dbResult');
     } on FormatException catch (e) {
       return Response.badRequest(body: e.message);

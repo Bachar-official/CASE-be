@@ -13,6 +13,11 @@ class AuthHandler {
   final DBRepository repository;
   final Env env;
 
+  final String _missedToken = 'Missed token';
+  final String _tokenExpired = 'Token expired';
+  final String _noPermissions = 'You don\'t have enough permissions';
+  final String _missedParams = 'Missed query parameters';
+
   AuthHandler({required this.repository, required this.env});
 
   /// Ответчик на POST /auth
@@ -43,10 +48,10 @@ class AuthHandler {
     String? permission = queryParams['permission'];
 
     if (token == null) {
-      return Response.unauthorized('Missed token');
+      return Response.unauthorized(_missedToken);
     }
     if (username == null || password == null || permission == null) {
-      return Response.forbidden('Missed parameters');
+      return Response.forbidden(_missedParams);
     }
 
     try {
@@ -54,11 +59,11 @@ class AuthHandler {
       String? permissionStr = tokenPayload['permission'];
 
       if (permissionStr == null) {
-        return Response.internalServerError(body: 'Something went wrong');
+        return Response.internalServerError();
       }
 
       if (!parsePermission(tokenPayload).canManageUsers) {
-        return Response.forbidden('You don\'t have enough permissions!');
+        return Response.forbidden(_noPermissions);
       }
 
       var result = await repository.addUser(
@@ -67,7 +72,7 @@ class AuthHandler {
       return Response.ok('User added with code $result');
     } on JWTExpiredException catch (e) {
       print(e.message);
-      return Response.badRequest(body: 'Token expired');
+      return Response.badRequest(body: _tokenExpired);
     } on Exception catch (e) {
       print(e);
       return Response.badRequest(body: e);
@@ -83,10 +88,10 @@ class AuthHandler {
     String? username = queryParams['username'];
 
     if (token == null) {
-      return Response.unauthorized('Missed token');
+      return Response.unauthorized(_missedToken);
     }
     if (username == null) {
-      return Response.forbidden('Missed parameters');
+      return Response.forbidden(_missedParams);
     }
 
     try {
@@ -94,18 +99,18 @@ class AuthHandler {
       String? permissionStr = tokenPayload['permission'];
 
       if (permissionStr == null) {
-        return Response.internalServerError(body: 'Something went wrong');
+        return Response.internalServerError();
       }
 
       if (!parsePermission(tokenPayload).canManageUsers) {
-        return Response.forbidden('You don\'t have enough permissions!');
+        return Response.forbidden(_noPermissions);
       }
 
       var result = repository.deleteUser(username);
       return Response.ok('User deleted with code $result');
     } on JWTExpiredException catch (e) {
       print(e.message);
-      return Response.badRequest(body: 'Token expired');
+      return Response.badRequest(body: _tokenExpired);
     } on Exception catch (e) {
       print(e);
       return Response.badRequest(body: e);
@@ -121,10 +126,10 @@ class AuthHandler {
     String? password = queryParams['password'];
 
     if (token == null) {
-      return Response.unauthorized('Missed token');
+      return Response.unauthorized(_missedToken);
     }
     if (password == null) {
-      return Response.forbidden('Missed parameters');
+      return Response.forbidden(_missedParams);
     }
 
     try {
@@ -133,11 +138,11 @@ class AuthHandler {
       String? username = tokenPayload['username'];
 
       if (permissionStr == null || username == null) {
-        return Response.internalServerError(body: 'Something went wrong');
+        return Response.internalServerError();
       }
 
       var result = await repository.updateUserPassword(username, password);
-      return Response.ok('Password update with code $result');
+      return Response.ok('Password updated with code $result');
     } on JWTExpiredException catch (e) {
       print(e.message);
       return Response.badRequest(body: 'Token expired');
