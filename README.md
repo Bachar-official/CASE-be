@@ -36,6 +36,24 @@ CREATE SEQUENCE public.apk_id_seq
 	NO CYCLE;
 ```
 
+Таблица "user":
+
+```
+CREATE TABLE public."user" (
+	id int8 NOT NULL DEFAULT nextval('users_id_seq'::regclass),
+	"name" varchar(100) NOT NULL,
+	"password" text NOT NULL,
+	"permission" varchar(100) NOT NULL,
+	CONSTRAINT user_un UNIQUE (name)
+);
+```
+
+Ограничения для таблицы "user":
+
+```
+ALTER TABLE public."user" ADD CONSTRAINT user_un UNIQUE (name);
+```
+
 Таблица "app":
 
 ```
@@ -77,6 +95,7 @@ ALTER TABLE public.apk ADD CONSTRAINT apk_fk FOREIGN KEY (app_id) REFERENCES pub
 * DBNAME = <имя БД>
 * DBUSERNAME = <имя пользователя БД>
 * DBPASSWORD = <пароль БД>
+* PASSPHRASE = <фраза для подписывания токена>
 
 ## Компиляция бинарника
 
@@ -110,6 +129,7 @@ Environment="DBNAME=<имя БД>"
 Environment="DBUSERNAME=<имя пользователя БД>"
 Environment="DBPASSWORD=<пароль БД>"
 Environment="PORT=<порт хоста>"
+Environment="PASSPHRASE=<фраза для подписывания токена>"
 ```
 
 После этого перезагружаем systemctl: `sudo systemctl daemon-reload`

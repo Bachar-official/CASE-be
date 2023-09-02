@@ -10,6 +10,8 @@ class Env {
   final String dbUsername;
   final String dbPassword;
 
+  final String passPhrase;
+
   int get pgPortInt => int.parse(pgPort);
   int get hostPort => int.parse(port ?? '1337');
 
@@ -20,5 +22,6 @@ class Env {
       required this.pgPort,
       required this.dbName,
       required this.dbUsername,
-      required this.dbPassword});
+      required this.dbPassword,
+      required this.passPhrase});
 }

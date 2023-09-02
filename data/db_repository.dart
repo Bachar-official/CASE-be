@@ -3,11 +3,72 @@ import 'package:postgres/postgres.dart';
 import '../domain/entity/apk.dart';
 import '../domain/entity/app.dart';
 import '../domain/entity/arch.dart';
+import '../domain/entity/permission.dart';
+import '../domain/entity/user.dart';
+import '../utils/hash_string.dart';
 
 class DBRepository {
   final PostgreSQLConnection connection;
 
   DBRepository({required this.connection});
+
+  /// Импровизированная миграция
+  Future<bool> migrate() async {
+    PostgreSQLResult queryResult = await connection.query('SELECT * FROM user');
+    if (queryResult.isEmpty) {
+      await connection.execute(
+          'INSERT INTO user (name, password, permission) '
+          'VALUES (@name, @password, @permission)',
+          substitutionValues: {
+            'name': 'admin',
+            'password': hashString('password'),
+            'permission': Permission.full.name,
+          });
+      return true;
+    }
+    return false;
+  }
+
+  /// Получение списка всех пользователей
+  Future<List<Map<String, dynamic>>?> getUsers() async {
+    var queryResult = await connection.query('SELECT * from user');
+    if (queryResult.isEmpty) {
+      return null;
+    }
+    List<User> users =
+        queryResult.map((row) => User.fromPostgreSQL(row)).toList();
+    return users.map((user) => user.toJson()).toList();
+  }
+
+  /// Добавление нового пользователя
+  Future<int> addUser(
+      String username, String password, Permission permission) async {
+    return await connection.execute(
+        'INSERT INTO user (name, password, permission) '
+        'VALUES (@name, @password, @permission)',
+        substitutionValues: {
+          'name': username,
+          'password': hashString(password),
+          'permission': permission.name
+        });
+  }
+
+  /// Обновление пароля у пользователя
+  Future<int> updateUserPassword(String username, String password) async {
+    return await connection.execute(
+        'UPDATE user SET password = @password'
+        'WHERE name = @username',
+        substitutionValues: {
+          'username': username,
+          'password': hashString(password),
+        });
+  }
+
+  /// Удаление пользователя
+  Future<int> deleteUser(String username) async {
+    return await connection.execute('DELETE FROM user WHERE name = @username',
+        substitutionValues: {'name': username});
+  }
 
   /// Запросить все приложения
   Future<List<Map<String, dynamic>>?> getApps() async {

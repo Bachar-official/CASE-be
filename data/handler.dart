@@ -22,6 +22,12 @@ class Handler {
     connection = PostgreSQLConnection(env.pgHost, env.pgPortInt, env.dbName,
         username: env.dbUsername, password: env.dbPassword, useSSL: true);
     repository = DBRepository(connection: connection);
+    repository.migrate().then((res) => {
+          if (res)
+            {print('Migration done!\n Don\'t forget to update password!')}
+          else
+            {print('Migration don\'t needed')}
+        });
   }
 
   Future<void> init() async {
