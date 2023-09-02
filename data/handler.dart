@@ -10,15 +10,16 @@ import '../domain/entity/app.dart';
 import '../domain/entity/arch.dart';
 import '../domain/entity/env.dart';
 import '../domain/entity/permission.dart';
-import '../domain/entity/user.dart';
 import '../utils/jwt_utils.dart';
 import '../utils/parse_file.dart';
+import 'auth_handler.dart';
 import 'db_repository.dart';
 
 class Handler {
   late final RouterPlus router;
   late final PostgreSQLConnection connection;
   late final DBRepository repository;
+  late final AuthHandler authHandler;
   final Env env;
 
   Handler({required this.env}) {
@@ -26,6 +27,8 @@ class Handler {
     connection = PostgreSQLConnection(env.pgHost, env.pgPortInt, env.dbName,
         username: env.dbUsername, password: env.dbPassword, useSSL: true);
     repository = DBRepository(connection: connection);
+
+    authHandler = AuthHandler(repository: repository, env: env);
   }
 
   Future<void> init() async {
@@ -35,8 +38,10 @@ class Handler {
       ..get('/apps/<package>/icon', _downloadImageHandler)
       ..post('/apps/<package>/upload', _uploadAPKHandler)
       ..post('/apps/<package>/info', _infoHandler)
-      ..post('/auth', _authHandler)
-      ..post('/auth/add', _createUserHandler)
+      ..post('/auth', authHandler.authenticate)
+      ..post('/auth/add', authHandler.createUser)
+      ..delete('/auth/delete', authHandler.deleteUser)
+      ..patch('/auth/password', authHandler.updatePassword)
       ..patch('/apps/<package>/info', _updateInfoHandler);
 
     await connection.open();
@@ -45,64 +50,6 @@ class Handler {
       print('Migration done!\nDon\'t forget to update password!');
     } else {
       print('Migration don\'t needed.');
-    }
-  }
-
-  /// Ответчик на POST запрос в каталог /auth
-  Future<Response> _authHandler(Request req) async {
-    print('Request to authenticate');
-    final String query = await req.readAsString();
-    Map queryParams = jsonDecode(query);
-    String? username = queryParams['username'];
-    String? password = queryParams['password'];
-    if (username == null || password == null) {
-      return Response.badRequest(body: 'Missed username or password');
-    }
-    User? user = await repository.getUserCredentials(username, password);
-    if (user == null) {
-      return Response.unauthorized('Invalid username or password');
-    }
-    return Response.ok(generateJWT(user, env.passPhrase));
-  }
-
-  Future<Response> _createUserHandler(Request req) async {
-    print('Request to create new user');
-    final String query = await req.readAsString();
-    Map queryParams = jsonDecode(query);
-    String? token = queryParams['token'];
-    String? username = queryParams['username'];
-    String? password = queryParams['password'];
-    String? permission = queryParams['permission'];
-
-    if (token == null) {
-      return Response.unauthorized('Missed token');
-    }
-    if (username == null || password == null || permission == null) {
-      return Response.forbidden('Missed parameters');
-    }
-
-    try {
-      Map<String, dynamic> tokenPayload = parseJWT(token, env.passPhrase);
-      String? permissionStr = tokenPayload['permission'];
-
-      if (permissionStr == null) {
-        return Response.internalServerError(body: 'Something went wrong');
-      }
-
-      if (!parsePermission(tokenPayload).canManageUsers) {
-        return Response.forbidden('You don\'t have enough permissions!');
-      }
-
-      var result = await repository.addUser(
-          username, password, getPermissionFromString(permission));
-
-      return Response.ok('User added with code $result');
-    } on JWTExpiredException catch (e) {
-      print(e.message);
-      return Response.badRequest(body: 'Token expired');
-    } on Exception catch (e) {
-      print(e);
-      return Response.badRequest(body: e);
     }
   }
 

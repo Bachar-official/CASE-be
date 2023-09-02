@@ -21,3 +21,7 @@ Map<String, dynamic> parseJWT(String token, String passPhrase) {
 Permission parsePermission(Map<String, dynamic> payload) {
   return getPermissionFromString(payload['permission']);
 }
+
+String getUsername(Map<String, dynamic> payload) {
+  return payload['username'];
+}
