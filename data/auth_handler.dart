@@ -23,18 +23,22 @@ class AuthHandler {
   /// Ответчик на POST /auth
   Future<Response> authenticate(Request req) async {
     print('Request to authenticate');
-    final String query = await req.readAsString();
-    Map queryParams = jsonDecode(query);
-    String? username = queryParams['username'];
-    String? password = queryParams['password'];
-    if (username == null || password == null) {
-      return Response.badRequest(body: 'Missed username or password');
+    try {
+      final String query = await req.readAsString();
+      Map queryParams = jsonDecode(query);
+      String? username = queryParams['username'];
+      String? password = queryParams['password'];
+      if (username == null || password == null) {
+        return Response.badRequest(body: 'Missed username or password');
+      }
+      User? user = await repository.getUserCredentials(username, password);
+      if (user == null) {
+        return Response.unauthorized('Invalid username or password');
+      }
+      return Response.ok(generateJWT(user, env.passPhrase));
+    } catch (e) {
+      return Response.internalServerError(body: e);
     }
-    User? user = await repository.getUserCredentials(username, password);
-    if (user == null) {
-      return Response.unauthorized('Invalid username or password');
-    }
-    return Response.ok(generateJWT(user, env.passPhrase));
   }
 
   /// Ответчик на POST /auth/add

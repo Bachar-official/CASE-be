@@ -132,7 +132,7 @@ class AppHandler {
         return Response.forbidden(_noPermissions);
       }
 
-      App? app = await repository.findAppByPackage(package!);
+      App? app = await repository.findAppByPackage(package);
       if (app == null) {
         return Response(404, body: 'App $name not found');
       }
