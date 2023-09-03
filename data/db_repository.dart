@@ -60,7 +60,7 @@ class DBRepository {
   Future<int> addUser(
       String username, String password, Permission permission) async {
     return await connection.execute(
-        'INSERT INTO authorization (name, password, permission) '
+        'INSERT INTO "authorization" (name, password, permission) '
         'VALUES (@name, @password, @permission)',
         substitutionValues: {
           'name': username,
@@ -72,7 +72,7 @@ class DBRepository {
   /// Обновление пароля у пользователя
   Future<int> updateUserPassword(String username, String password) async {
     return await connection.execute(
-        'UPDATE authorization SET password = @password'
+        'UPDATE "authorization" SET password = @password'
         'WHERE name = @username',
         substitutionValues: {
           'username': username,
@@ -83,7 +83,7 @@ class DBRepository {
   /// Удаление пользователя
   Future<int> deleteUser(String username) async {
     return await connection.execute(
-        'DELETE FROM authorization WHERE name = @username',
+        'DELETE FROM "authorization" WHERE name = @username',
         substitutionValues: {'name': username});
   }
 
@@ -92,6 +92,12 @@ class DBRepository {
     PostgreSQLResult queryResult = await connection.query('SELECT * FROM app');
     List<App> apps = queryResult.map((row) => App.fromPostgreSQL(row)).toList();
     return apps.map((app) => app.toJson()).toList();
+  }
+
+  /// Удалить приложение
+  Future<int> deleteApp(String package) async {
+    return await connection.execute('DELETE FROM app WHERE package = @package',
+        substitutionValues: {'package': package});
   }
 
   /// Найти id приложения по package
@@ -130,6 +136,12 @@ class DBRepository {
           "size": apk.size,
           "path": apk.path
         });
+  }
+
+  /// Удалить все apk по id приложения
+  Future<int> removeApkByAppId(int appId) async {
+    return await connection.execute('DELETE FROM apk WHERE app_id = @appId',
+        substitutionValues: {'appId': appId});
   }
 
   /// Обновить существующее приложение

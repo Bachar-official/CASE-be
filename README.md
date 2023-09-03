@@ -166,7 +166,7 @@ POST на `HOST:PORT/auth/add`
 
 ## Удаление пользователя
 
-POST на `HOST:PORT/auth/delete`
+DELETE на `HOST:PORT/auth/delete`
 
 ```
 {
@@ -192,6 +192,7 @@ PATCH на `HOST:PORT/auth/password`
 
 ```
 {
+	"token": "токен авторизации",
     "icon": "PNG в BASE64",
     "version": "Версия",
     "name": "Название приложения",
@@ -205,7 +206,22 @@ PATCH на `HOST:PORT/auth/password`
 
 ```
 {
-    "icon": "PNG в BASE64" 
+	"token": "токен авторизации",
+    "icon": "PNG в BASE64" (необязательный),
+	"description": "описание" (необязательный),
+	// из остальных параметров обязательный хотя бы один
+	"version": "номер версии",
+	"name": "название",
+}
+```
+
+## Удаление записи "Приложение"
+
+Обновление происходит путём отправки DELETE запроса на эндпоинт `HOST:PORT/apps/<имя пакета>` следующего payload:
+
+```
+{
+	"token": "токен авторизации",
 }
 ```
 

@@ -1,9 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:http/retry.dart';
-
-import '../domain/entity/app.dart';
 import '../domain/entity/arch.dart';
 import '../domain/entity/env.dart';
 
@@ -64,4 +61,16 @@ File parseAndSaveIcon(
   File result = File('${env.workPath}/$package/icon.png');
   result.writeAsBytesSync(bytes);
   return result;
+}
+
+/// Удаление папки с артефактами
+///
+/// Возвращает [bool] - результат удаления папки
+bool deleteApk({required String package, required Env env}) {
+  try {
+    Directory('${env.workPath}/$package').delete(recursive: true);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }

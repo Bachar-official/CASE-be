@@ -112,7 +112,11 @@ class AppHandler {
       return Response.unauthorized(_missedToken);
     }
 
-    if (package == null || version == null || name == null) {
+    if (package == null) {
+      return Response.badRequest(body: _missedParams);
+    }
+
+    if (version == null || name == null) {
       return Response.badRequest(body: _missedParams);
     }
 
@@ -142,6 +146,46 @@ class AppHandler {
           description: description);
       var dbResult = await repository.updateApp(newApp);
       return Response.ok('App updated with code $dbResult');
+    } on JWTExpiredException catch (e) {
+      print(e.message);
+      return Response.unauthorized(_tokenExpired);
+    } on Exception catch (e) {
+      print(e);
+      return Response.internalServerError(body: e);
+    }
+  }
+
+  /// DELETE /apps/package
+  Future<Response> deleteApp(Request req) async {
+    print('Request to delete app');
+    String? package = req.params[_package];
+    final String query = await req.readAsString();
+    Map queryParams = jsonDecode(query);
+    String? token = queryParams[_token];
+
+    if (token == null) {
+      return Response.unauthorized(_missedToken);
+    }
+    if (package == null) {
+      return Response.badRequest(body: _missedParams);
+    }
+
+    try {
+      int? appId = await repository.getAppId(package);
+      if (appId == null) {
+        return Response.notFound('App not found');
+      }
+      // Сначала удаляем запись об apk из БД
+      await repository.removeApkByAppId(appId);
+      // Теперь удаляем непосредственно файлы
+      bool isDirRemoved = deleteApk(package: package, env: env);
+      if (!isDirRemoved) {
+        return Response.internalServerError(
+            body: 'Apk directory don\'t removed');
+      }
+      // Теперь можно удалять запись о приложении в БД
+      int deletedCode = await repository.deleteApp(package);
+      return Response.ok('App deleted with code $deletedCode');
     } on JWTExpiredException catch (e) {
       print(e.message);
       return Response.unauthorized(_tokenExpired);

@@ -40,6 +40,7 @@ class Handler {
       ..get('/apps', appHandler.getApps)
       ..post('/apps/<package>/info', appHandler.createApp)
       ..patch('/apps/<package>/info', appHandler.updateApp)
+      ..delete('/apps/<package>', appHandler.deleteApp)
       // Управление запросами к артефактам
       ..get('/apps/<package>/<arch>/download', _downloadFileHandler)
       ..get('/apps/<package>/icon', _downloadImageHandler)
@@ -154,41 +155,6 @@ class Handler {
     } on Exception catch (e) {
       print(e.toString());
       return Response.badRequest(body: e.toString());
-    }
-  }
-
-  /// Ответчик на POST /apps/<package>/info
-  Future<Response> _infoHandler(Request request) async {
-    String? package = request.params['package'];
-    print('Request to upload an info about package $package');
-    final String query = await request.readAsString();
-    try {
-      Map queryParams = jsonDecode(query);
-      String? icon = queryParams['icon'];
-      String? version = queryParams['version'];
-      String? name = queryParams['name'];
-      String? description = queryParams['description'];
-      if (icon == null || version == null || name == null || package == null) {
-        return Response.badRequest(body: 'Missed query parameters');
-      }
-      App? app = await repository.findApp(name);
-      if (app != null) {
-        return Response(409, body: 'App $package already exist');
-      }
-      File iconFile =
-          parseAndSaveIcon(iconBase64: icon, package: package, env: env);
-      App newApp = App(
-          description: description,
-          iconPath: iconFile.path,
-          name: name,
-          package: package,
-          version: version);
-      var dbResult = await repository.insertApp(newApp);
-      return Response.ok('App created with code $dbResult');
-    } on FormatException catch (e) {
-      return Response.badRequest(body: e.message);
-    } on Exception catch (e) {
-      return Response.internalServerError(body: e.toString());
     }
   }
 }
