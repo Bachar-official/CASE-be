@@ -171,6 +171,17 @@ class AppHandler {
     }
 
     try {
+      Map<String, dynamic> tokenPayload = parseJWT(token, env.passPhrase);
+      String? permissionStr = tokenPayload[_permission];
+
+      if (permissionStr == null) {
+        return Response.internalServerError();
+      }
+
+      if (!parsePermission(tokenPayload).canUpdate) {
+        return Response.forbidden(_noPermissions);
+      }
+
       int? appId = await repository.getAppId(package);
       if (appId == null) {
         return Response.notFound('App not found');
