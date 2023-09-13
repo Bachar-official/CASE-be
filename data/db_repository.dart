@@ -69,6 +69,18 @@ class DBRepository {
         });
   }
 
+  /// Проверка пароля у пользователя
+  Future<bool> isPasswordMatch(String username, String password) async {
+    PostgreSQLResult queryResult = await connection.query(
+        'SELECT * FROM "authorization" '
+        'WHERE name = @username AND password = @password',
+        substitutionValues: {
+          'username': username,
+          'password': hashString(password)
+        });
+    return queryResult.isNotEmpty;
+  }
+
   /// Обновление пароля у пользователя
   Future<int> updateUserPassword(String username, String password) async {
     return await connection.execute(

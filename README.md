@@ -193,6 +193,7 @@ PATCH на `HOST:PORT/auth/password`
 ```
 {
 	"token": "токен авторизации",
+	"oldPassword": "старый пароль",
 	"password": "новый пароль"
 }
 ```

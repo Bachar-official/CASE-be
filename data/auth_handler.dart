@@ -44,21 +44,21 @@ class AuthHandler {
   /// Ответчик на POST /auth/add
   Future<Response> createUser(Request req) async {
     print('Request to create new user');
-    final String query = await req.readAsString();
-    Map queryParams = jsonDecode(query);
-    String? token = queryParams['token'];
-    String? username = queryParams['username'];
-    String? password = queryParams['password'];
-    String? permission = queryParams['permission'];
-
-    if (token == null) {
-      return Response.unauthorized(_missedToken);
-    }
-    if (username == null || password == null || permission == null) {
-      return Response.forbidden(_missedParams);
-    }
 
     try {
+      final String query = await req.readAsString();
+      Map queryParams = jsonDecode(query);
+      String? token = queryParams['token'];
+      String? username = queryParams['username'];
+      String? password = queryParams['password'];
+      String? permission = queryParams['permission'];
+
+      if (token == null) {
+        return Response.unauthorized(_missedToken);
+      }
+      if (username == null || password == null || permission == null) {
+        return Response.forbidden(_missedParams);
+      }
       Map<String, dynamic> tokenPayload = parseJWT(token, env.passPhrase);
       String? permissionStr = tokenPayload['permission'];
 
@@ -86,19 +86,20 @@ class AuthHandler {
   /// Ответчик на DELETE /auth/delete
   Future<Response> deleteUser(Request req) async {
     print('Request to delete user');
-    final String query = await req.readAsString();
-    Map queryParams = jsonDecode(query);
-    String? token = queryParams['token'];
-    String? username = queryParams['username'];
-
-    if (token == null) {
-      return Response.unauthorized(_missedToken);
-    }
-    if (username == null) {
-      return Response.forbidden(_missedParams);
-    }
 
     try {
+      final String query = await req.readAsString();
+      Map queryParams = jsonDecode(query);
+      String? token = queryParams['token'];
+      String? username = queryParams['username'];
+
+      if (token == null) {
+        return Response.unauthorized(_missedToken);
+      }
+      if (username == null) {
+        return Response.forbidden(_missedParams);
+      }
+
       Map<String, dynamic> tokenPayload = parseJWT(token, env.passPhrase);
       String? permissionStr = tokenPayload['permission'];
 
@@ -124,25 +125,32 @@ class AuthHandler {
   /// Ответчик на PATCH /auth/password
   Future<Response> updatePassword(Request req) async {
     print('Request to update password');
-    final String query = await req.readAsString();
-    Map queryParams = jsonDecode(query);
-    String? token = queryParams['token'];
-    String? password = queryParams['password'];
-
-    if (token == null) {
-      return Response.unauthorized(_missedToken);
-    }
-    if (password == null) {
-      return Response.forbidden(_missedParams);
-    }
 
     try {
+      final String query = await req.readAsString();
+      Map queryParams = jsonDecode(query);
+      String? token = queryParams['token'];
+      String? password = queryParams['password'];
+      String? oldPassword = queryParams['oldPassword'];
+
+      if (token == null) {
+        return Response.unauthorized(_missedToken);
+      }
+      if (password == null || oldPassword == null) {
+        return Response.forbidden(_missedParams);
+      }
+
       Map<String, dynamic> tokenPayload = parseJWT(token, env.passPhrase);
       String? permissionStr = tokenPayload['permission'];
       String? username = tokenPayload['username'];
 
       if (permissionStr == null || username == null) {
         return Response.internalServerError();
+      }
+
+      bool check = await repository.isPasswordMatch(username, oldPassword);
+      if (!check) {
+        return Response.badRequest(body: 'Old password don\'t match');
       }
 
       var result = await repository.updateUserPassword(username, password);
