@@ -9,7 +9,7 @@ import '../utils/check_env.dart';
 
 final Map<String, String> _headers = {
   'Access-Control-Allow-Origin': '*',
-  'Content-Type': 'text/html'
+  'Content-Type': 'application/json'
 };
 
 Response? _options(Request request) =>
