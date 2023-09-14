@@ -145,7 +145,7 @@ class AuthHandler {
       String? username = tokenPayload['username'];
 
       if (permissionStr == null || username == null) {
-        return Response.internalServerError();
+        return Response.internalServerError(body: 'Wrong token provided');
       }
 
       bool check = await repository.isPasswordMatch(username, oldPassword);
