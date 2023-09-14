@@ -41,7 +41,7 @@ class Handler {
       ..post('/auth', authHandler.authenticate)
       ..post('/auth/add', authHandler.createUser)
       ..delete('/auth/delete', authHandler.deleteUser)
-      ..post('/auth/password', authHandler.updatePassword);
+      ..patch('/auth/password', authHandler.updatePassword);
 
     await connection.open();
     var isMigrated = await repository.migrate();

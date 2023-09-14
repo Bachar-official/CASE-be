@@ -84,7 +84,7 @@ class DBRepository {
   /// Обновление пароля у пользователя
   Future<int> updateUserPassword(String username, String password) async {
     return await connection.execute(
-        'UPDATE "authorization" SET password = @password'
+        'UPDATE "authorization" SET password = @password '
         'WHERE name = @username',
         substitutionValues: {
           'username': username,
