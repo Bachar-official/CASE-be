@@ -47,7 +47,7 @@ class App {
         'name': name,
         'version': version,
         'package': package,
-        'iconPath': iconPath,
+        'iconPath': '/apps/$package/icon',
         'description': description
       };
 

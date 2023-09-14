@@ -81,7 +81,7 @@ class AppHandler {
           parseAndSaveIcon(iconBase64: icon, package: package, env: env);
       App newApp = App(
           description: description,
-          iconPath: '/apps/$package/icon',
+          iconPath: iconFile.path,
           name: name,
           package: package,
           version: version);
