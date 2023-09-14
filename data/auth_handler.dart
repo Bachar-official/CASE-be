@@ -20,6 +20,23 @@ class AuthHandler {
 
   AuthHandler({required this.repository, required this.env});
 
+  /// Ответчик на GET /auth/users
+  Future<Response> getUsers(Request req) async {
+    print('Request to users list');
+    try {
+      final String query = await req.readAsString();
+      Map queryParams = jsonDecode(query);
+      String? token = queryParams['token'];
+      if (token == null) {
+        return Response.unauthorized(_missedToken);
+      }
+      var response = await repository.getUsers();
+      return Response.ok(json.encode(response));
+    } catch (e) {
+      return Response.internalServerError(body: e);
+    }
+  }
+
   /// Ответчик на POST /auth
   Future<Response> authenticate(Request req) async {
     print('Request to authenticate');

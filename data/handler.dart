@@ -38,6 +38,7 @@ class Handler {
       ..get('/apps/<package>/icon', apkHandler.downloadIcon)
       ..post('/apps/<package>/upload', apkHandler.uploadAPK)
       // Управление запросами аутентификации
+      ..post('/auth/users', authHandler.getUsers)
       ..post('/auth', authHandler.authenticate)
       ..post('/auth/add', authHandler.createUser)
       ..delete('/auth/delete', authHandler.deleteUser)
