@@ -119,9 +119,14 @@ class AuthHandler {
 
       Map<String, dynamic> tokenPayload = parseJWT(token, env.passPhrase);
       String? permissionStr = tokenPayload['permission'];
+      String? fromUser = tokenPayload['username'];
 
-      if (permissionStr == null) {
+      if (permissionStr == null || fromUser == null) {
         return Response.internalServerError();
+      }
+
+      if (username == fromUser) {
+        return Response(409, body: 'You can\'t delete yourself');
       }
 
       if (!parsePermission(tokenPayload).canManageUsers) {

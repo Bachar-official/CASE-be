@@ -96,7 +96,7 @@ class DBRepository {
   Future<int> deleteUser(String username) async {
     return await connection.execute(
         'DELETE FROM "authorization" WHERE name = @username',
-        substitutionValues: {'name': username});
+        substitutionValues: {'username': username});
   }
 
   /// Запросить все приложения
