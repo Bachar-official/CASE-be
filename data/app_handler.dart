@@ -42,6 +42,7 @@ class AppHandler {
   }
 
   /// POST /apps/package/info
+  // TODO: хранить картинку в бащу в BASE64
   Future<Response> createApp(Request req) async {
     print('Request to create new app');
     String? package = req.params[_package];

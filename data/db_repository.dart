@@ -126,7 +126,7 @@ class DBRepository {
   /// Вставить новое приложение
   Future<int> insertApp(App app) async {
     return await connection.execute(
-        'INSERT INTO app (name, package, description, iconPath, version) '
+        'INSERT INTO app (name, package, description, icon_path, version) '
         'VALUES (@name, @package, @description, @iconPath, @version)',
         substitutionValues: {
           "name": app.name,
