@@ -2,6 +2,7 @@ import 'package:postgres/postgres.dart';
 
 import '../domain/entity/apk.dart';
 import '../domain/entity/app.dart';
+import '../domain/entity/app_entity.dart';
 import '../domain/entity/arch.dart';
 import '../domain/entity/permission.dart';
 import '../domain/entity/user.dart';
@@ -100,10 +101,10 @@ class DBRepository {
   }
 
   /// Запросить все приложения
-  Future<List<Map<String, dynamic>>?> getApps() async {
+  Future<List<App>> getApps() async {
     PostgreSQLResult queryResult = await connection.query('SELECT * FROM app');
     List<App> apps = queryResult.map((row) => App.fromPostgreSQL(row)).toList();
-    return apps.map((app) => app.toJson()).toList();
+    return apps;
   }
 
   /// Удалить приложение
@@ -221,5 +222,23 @@ class DBRepository {
       return null;
     }
     return APK.fromPostgreSQL(queryResult.first);
+  }
+
+  Future<List<APK>> findAllApkByPackage(String package) async {
+    PostgreSQLResult queryResult = await connection.query(
+        'select a.* from apk a join app b on a.app_id = b.id '
+        'where b.package = @package',
+        substitutionValues: {'package': package});
+    return queryResult.map((element) => APK.fromPostgreSQL(element)).toList();
+  }
+
+  Future<List<App>> getAllApps() async {
+    PostgreSQLResult queryResult = await connection
+        .query('select a."name", a."version", a.package, a.icon_path, '
+            'a.description, b."size", b.arch, b."path" from app a '
+            'left join apk b on a.id = b.app_id');
+    List<AppEntity> entities =
+        queryResult.map((row) => AppEntity.fromPostgreSQL(row)).toList();
+    return AppEntity.toAppList(entities);
   }
 }

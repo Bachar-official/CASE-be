@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:shelf_plus/shelf_plus.dart';
+import '../domain/entity/apk.dart';
 import '../domain/entity/app.dart';
 import '../domain/entity/env.dart';
 import '../domain/entity/permission.dart';
@@ -33,8 +34,24 @@ class AppHandler {
   Future<Response> getApps(Request req) async {
     print('Request of all apps');
     try {
-      var result = await repository.getApps();
-      return Response.ok(json.encode(result));
+      var apps = await repository.getAllApps();
+      return Response.ok(jsonEncode(apps.map((app) => app.toJson())));
+    } catch (e) {
+      print(e.toString());
+      return Response.internalServerError();
+    }
+  }
+
+  /// GET /apps/package/apk
+  Future<Response> getAppApks(Request req) async {
+    print('Request of all APKs from app');
+    String? package = req.params[_package];
+    if (package == null) {
+      return Response.badRequest(body: 'Empty package');
+    }
+    try {
+      final List<APK> result = await repository.findAllApkByPackage(package);
+      return Response.ok(json.encode(result.map((e) => e.toJson()).toList()));
     } catch (e) {
       print(e.toString());
       return Response.internalServerError();
@@ -85,6 +102,7 @@ class AppHandler {
           description: description,
           iconPath: iconFile?.path,
           name: name,
+          apk: [],
           package: package,
           version: version);
       var dbResult = await repository.insertApp(newApp);

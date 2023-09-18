@@ -7,12 +7,12 @@ class APK {
   final int size;
   final String path;
   final Arch arch;
-  final int appId;
+  final int? appId;
 
   APK(
       {this.id,
       required this.size,
-      required this.appId,
+      this.appId,
       required this.path,
       required this.arch});
 
@@ -21,7 +21,7 @@ class APK {
       required this.size,
       required this.path,
       required String strArch,
-      required this.appId})
+      this.appId})
       : arch = getArchFromString(strArch);
 
   factory APK.fromPostgreSQL(PostgreSQLResultRow row) {
@@ -33,6 +33,8 @@ class APK {
         appId: map['appId'],
         arch: getArchFromString(map['arch']));
   }
+
+  Map<String, dynamic> toJson() => {"size": size, "arch": arch.name};
 
   @override
   String toString() => 'APK with appId $appId and path $path';

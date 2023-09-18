@@ -1,5 +1,7 @@
 import 'package:postgres/postgres.dart';
 
+import 'apk.dart';
+
 class App {
   final int? id;
   final String name;
@@ -7,6 +9,7 @@ class App {
   final String? iconPath;
   final String? description;
   final String version;
+  final List<APK> apk;
 
   App(
       {this.id,
@@ -14,7 +17,8 @@ class App {
       required this.version,
       required this.package,
       this.iconPath,
-      this.description = 'Описания пока нет'});
+      this.description = 'Описания пока нет',
+      required this.apk});
 
   App copyWith(
           {int? id,
@@ -22,9 +26,11 @@ class App {
           String? version,
           String? package,
           String? iconPath,
-          String? description}) =>
+          String? description,
+          List<APK>? apk}) =>
       App(
           id: id ?? this.id,
+          apk: apk ?? this.apk,
           name: name ?? this.name,
           version: version ?? this.version,
           package: package ?? this.package,
@@ -39,7 +45,8 @@ class App {
         version: map['version'],
         package: map['package'],
         iconPath: map['icon_path'],
-        description: map['description']);
+        description: map['description'],
+        apk: []);
   }
 
   Map<String, dynamic> toJson() => {
@@ -48,7 +55,8 @@ class App {
         'version': version,
         'package': package,
         'iconPath': '/apps/$package/icon',
-        'description': description
+        'description': description,
+        'apk': apk.map((e) => e.toJson()).toList()
       };
 
   @override

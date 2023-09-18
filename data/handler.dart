@@ -30,6 +30,7 @@ class Handler {
     router
       // Управление запросами к сущностям приложения
       ..get('/apps', appHandler.getApps)
+      ..get('/apps/<package>/apk', appHandler.getAppApks)
       ..post('/apps/<package>/info', appHandler.createApp)
       ..patch('/apps/<package>/info', appHandler.updateApp)
       ..delete('/apps/<package>', appHandler.deleteApp)
