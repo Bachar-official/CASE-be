@@ -46,16 +46,20 @@ File parseAndSaveAPK(
 ///
 /// Кидает [FormatException], если картинка неподходящего формата.
 /// Возвращает [File], если всё прошло успешно.
-File parseAndSaveIcon(
-    {required String iconBase64, required String package, required Env env}) {
+File? parseAndSaveIcon(
+    {String? iconBase64, required String package, required Env env}) {
+  if (!Directory('${env.workPath}/$package').existsSync()) {
+    Directory('${env.workPath}/$package').createSync(recursive: true);
+  }
+
+  if (iconBase64 == null) {
+    return null;
+  }
+
   final List<int> bytes = base64Decode(iconBase64);
 
   if (!isPNG(bytes)) {
     throw FormatException('Wrong icon format');
-  }
-
-  if (!Directory('${env.workPath}/$package').existsSync()) {
-    Directory('${env.workPath}/$package').createSync(recursive: true);
   }
 
   File result = File('${env.workPath}/$package/icon.png');

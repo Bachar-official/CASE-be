@@ -42,7 +42,6 @@ class AppHandler {
   }
 
   /// POST /apps/package/info
-  // TODO: хранить картинку в бащу в BASE64
   Future<Response> createApp(Request req) async {
     print('Request to create new app');
     String? package = req.params[_package];
@@ -58,7 +57,7 @@ class AppHandler {
       return Response.unauthorized(_missedToken);
     }
 
-    if (icon == null || version == null || name == null || package == null) {
+    if (version == null || name == null || package == null) {
       return Response.badRequest(body: _missedParams);
     }
 
@@ -78,11 +77,13 @@ class AppHandler {
       if (app != null) {
         return Response(409, body: 'App $package already exist');
       }
-      File iconFile =
+
+      File? iconFile =
           parseAndSaveIcon(iconBase64: icon, package: package, env: env);
+
       App newApp = App(
           description: description,
-          iconPath: iconFile.path,
+          iconPath: iconFile?.path,
           name: name,
           package: package,
           version: version);
