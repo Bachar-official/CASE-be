@@ -35,7 +35,7 @@ class AppHandler {
     print('Request of all apps');
     try {
       var apps = await repository.getAllApps();
-      return Response.ok(jsonEncode(apps.map((app) => app.toJson())));
+      return Response.ok(jsonEncode(apps.map((app) => app.toJson()).toList()));
     } catch (e) {
       print(e.toString());
       return Response.internalServerError();
