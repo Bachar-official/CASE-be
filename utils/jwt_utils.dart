@@ -6,11 +6,14 @@ import '../domain/entity/permission.dart';
 import '../domain/entity/user.dart';
 
 /// Генерация JWT токена, протухающего через 10 минут
-String generateJWT(User user, String passPhrase) {
+String generateJWT(User user, String passPhrase, {bool onlyToken = false}) {
   var jwt = JWT(user.toJWT());
-  return jsonEncode({
-    'token': jwt.sign(SecretKey(passPhrase), expiresIn: Duration(minutes: 10))
-  });
+  if (!onlyToken) {
+    return jsonEncode({
+      'token': jwt.sign(SecretKey(passPhrase), expiresIn: Duration(minutes: 10))
+    });
+  }
+  return jwt.sign(SecretKey(passPhrase), expiresIn: Duration(minutes: 10));
 }
 
 /// Парсинг JWT токена

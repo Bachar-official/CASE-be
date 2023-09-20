@@ -41,6 +41,7 @@ class Handler {
       // Управление запросами аутентификации
       ..post('/auth/users', authHandler.getUsers)
       ..post('/auth', authHandler.authenticate)
+      ..post('/auth/cli', authHandler.authenticateCli)
       ..post('/auth/add', authHandler.createUser)
       ..delete('/auth/delete', authHandler.deleteUser)
       ..patch('/auth/password', authHandler.updatePassword);
