@@ -102,6 +102,7 @@ ALTER TABLE public.apk ADD CONSTRAINT apk_fk FOREIGN KEY (app_id) REFERENCES pub
 * Установить [Dart SDK](https://dart.dev/get-darthttps:/).
 * Склонировать/скачать данный репозиторий.
 * Зайти в корневую папку репозитория и выполнить команду `dart compile exe bin/server.dart`.
+* Для сгенерированного файла server.dart устанавливаем права: `sudo chmod 744 /путь-к-вашему-exe.exe`.
 
 ## Настройка на сервере в качестве демона (Linux)
 
@@ -131,6 +132,7 @@ Environment="DBPASSWORD=<пароль БД>"
 Environment="PORT=<порт хоста>"
 Environment="PASSPHRASE=<фраза для подписывания токена>"
 ```
+На всякий случай устанавливаем права для файла: `sudo chmod 644 /etc/systemd/system/ваш_файл.service`
 
 После этого перезагружаем systemctl: `sudo systemctl daemon-reload`
 
