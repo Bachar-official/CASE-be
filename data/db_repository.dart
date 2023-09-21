@@ -160,10 +160,11 @@ class DBRepository {
   /// Обновить существующее приложение
   Future<int> updateApp(App app) async {
     return await connection.execute(
-        'UPDATE app SET name = @name, description = @description, icon_path = @iconPath'
-        'WHERE package = @package',
+        'UPDATE app SET name = @name, description = @description, icon_path = @iconPath, '
+        'version = @version WHERE package = @package',
         substitutionValues: {
           "name": app.name,
+          "version": app.version,
           "description": app.description,
           "iconPath": app.iconPath,
           "package": app.package

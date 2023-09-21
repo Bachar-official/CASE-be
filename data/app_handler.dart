@@ -123,7 +123,7 @@ class AppHandler {
     } on JWTExpiredException catch (e) {
       print(e.message);
       return Response.unauthorized(_tokenExpired);
-    } on FormatException catch (e, s) {
+    } on FormatException catch (e) {
       print(e.message);
       return Response.badRequest(body: e.message);
     } on Exception catch (e) {
@@ -136,27 +136,40 @@ class AppHandler {
   Future<Response> updateApp(Request req) async {
     print('Request to update app');
     String? package = req.params[_package];
-    final String query = await req.readAsString();
-    Map queryParams = jsonDecode(query);
-    String? icon = queryParams[_icon];
-    String? version = queryParams[_version];
-    String? name = queryParams[_name];
-    String? description = queryParams[_description];
-    String? token = queryParams[_token];
 
-    if (token == null) {
-      return Response.unauthorized(_missedToken);
+    if (!req.isMultipartForm) {
+      return Response.badRequest(body: 'Wrong data format');
     }
 
     if (package == null) {
       return Response.badRequest(body: _missedParams);
     }
 
-    if (version == null || name == null) {
-      return Response.badRequest(body: _missedParams);
-    }
-
     try {
+      Map<String, dynamic> data = {};
+      List<FormData> formData = await req.multipartFormData.toList();
+      for (var d in formData) {
+        if (d.filename == null) {
+          data[d.name] = await d.part.readString();
+        } else {
+          data[d.name] = await d.part.readBytes();
+        }
+      }
+
+      String? token = data['token'];
+      String? version = data['version'];
+      String? name = data['name'];
+      String? description = data['description'];
+      dynamic icon = data['icon'];
+
+      if (token == null) {
+        return Response.unauthorized(_missedToken);
+      }
+
+      if (version == null) {
+        return Response.badRequest(body: _missedParams);
+      }
+
       Map<String, dynamic> tokenPayload = parseJWT(token, env.passPhrase);
       String? permissionStr = tokenPayload[_permission];
 
@@ -170,16 +183,16 @@ class AppHandler {
 
       App? app = await repository.findAppByPackage(package);
       if (app == null) {
-        return Response(404, body: 'App $name not found');
+        return Response(404, body: 'App not found');
       }
-      File? iconFile = icon != null
-          ? parseAndSaveIcon(iconBase64: icon, package: app.package, env: env)
-          : null;
+      File? iconFile =
+          checkAndSaveIcon(package: app.package, env: env, list: icon);
       App newApp = app.copyWith(
           iconPath: iconFile?.path,
           version: version,
           name: name,
           description: description);
+      print(newApp);
       var dbResult = await repository.updateApp(newApp);
       return Response.ok('App updated with code $dbResult');
     } on JWTExpiredException catch (e) {
