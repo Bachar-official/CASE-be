@@ -74,7 +74,7 @@ class AppHandler {
       Map<String, dynamic> data = {};
       List<FormData> formData = await req.multipartFormData.toList();
       for (var d in formData) {
-        if (d.filename == null) {
+        if (data[d.name] is String) {
           data[d.name] = await d.part.readString();
         } else {
           data[d.name] = await d.part.readBytes();
@@ -149,7 +149,7 @@ class AppHandler {
       Map<String, dynamic> data = {};
       List<FormData> formData = await req.multipartFormData.toList();
       for (var d in formData) {
-        if (d.filename == null) {
+        if (data[d.name] is String) {
           data[d.name] = await d.part.readString();
         } else {
           data[d.name] = await d.part.readBytes();
