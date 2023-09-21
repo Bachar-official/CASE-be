@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import 'package:shelf_multipart/form_data.dart';
 import 'package:shelf_plus/shelf_plus.dart';
 import '../domain/entity/apk.dart';
 import '../domain/entity/app.dart';
@@ -62,24 +63,35 @@ class AppHandler {
   Future<Response> createApp(Request req) async {
     print('Request to create new app');
     String? package = req.params[_package];
-    final String query = await req.readAsString();
-    Map queryParams = jsonDecode(query);
-    String? icon = queryParams[_icon];
-    String? version = queryParams[_version];
-    String? name = queryParams[_name];
-    String? description = queryParams[_description];
-    String? token = queryParams[_token];
-
-    if (token == null) {
-      return Response.unauthorized(_missedToken);
+    if (!req.isMultipartForm) {
+      return Response.badRequest(body: 'Wrong data format');
     }
-
-    if (version == null || name == null || package == null) {
-      return Response.badRequest(body: _missedParams);
-    }
-
     try {
-      Map<String, dynamic> tokenPayload = parseJWT(token, env.passPhrase);
+      if (package == null) {
+        return Response.badRequest(body: _missedParams);
+      }
+
+      Map<String, dynamic> data = {};
+      List<FormData> formData = await req.multipartFormData.toList();
+      for (var d in formData) {
+        if (d.filename == null) {
+          data[d.name] = await d.part.readString();
+        } else {
+          data[d.name] = await d.part.readBytes();
+        }
+      }
+
+      String? token = data['token'];
+      String? name = data['name'];
+      String? version = data['version'];
+      String? description = data['description'];
+
+      if (token == null || name == null || version == null) {
+        return Response.badRequest(body: _missedParams);
+      }
+
+      Map<String, dynamic> tokenPayload =
+          parseJWT(data['token'], env.passPhrase);
       String? permissionStr = tokenPayload[_permission];
 
       if (permissionStr == null) {
@@ -90,26 +102,30 @@ class AppHandler {
         return Response.forbidden(_noPermissions);
       }
 
-      App? app = await repository.findApp(name);
+      App? app = await repository.findApp(data['name']);
       if (app != null) {
         return Response(409, body: 'App $package already exist');
       }
 
-      File? iconFile =
-          parseAndSaveIcon(iconBase64: icon, package: package, env: env);
+      File? file =
+          checkAndSaveIcon(package: package, list: data['icon'], env: env);
 
       App newApp = App(
           description: description,
-          iconPath: iconFile?.path,
+          iconPath: file?.path,
           name: name,
           apk: [],
           package: package,
           version: version);
       var dbResult = await repository.insertApp(newApp);
+
       return Response.ok('App created with code $dbResult');
     } on JWTExpiredException catch (e) {
       print(e.message);
       return Response.unauthorized(_tokenExpired);
+    } on FormatException catch (e, s) {
+      print(e.message);
+      return Response.badRequest(body: e.message);
     } on Exception catch (e) {
       print(e);
       return Response.internalServerError(body: e);

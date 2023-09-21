@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import '../domain/entity/arch.dart';
 import '../domain/entity/env.dart';
@@ -39,6 +40,23 @@ File parseAndSaveAPK(
 
   File result = File('${env.workPath}/$package/${arch.name}.apk');
   result.writeAsBytesSync(decodedBytes);
+  return result;
+}
+
+/// Сохранение иконки
+File? checkAndSaveIcon(
+    {required String package, Uint8List? list, required Env env}) {
+  if (list == null) {
+    return null;
+  }
+  if (!isPNG(list)) {
+    throw FormatException('Wrong PNG file');
+  }
+  if (!Directory('${env.workPath}/$package').existsSync()) {
+    Directory('${env.workPath}/$package').createSync(recursive: true);
+  }
+  File result = File('${env.workPath}/$package/icon.png');
+  result.writeAsBytesSync(list);
   return result;
 }
 
