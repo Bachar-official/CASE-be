@@ -24,13 +24,11 @@ bool isAPK(List<int> bytes) {
 /// Кидает [FormatException], если формат файла неправильный.
 /// Возвращает [File], если всё прошло успешно.
 File parseAndSaveAPK(
-    {required String b64file,
+    {required Uint8List b64file,
     required String package,
     required Arch arch,
     required Env env}) {
-  final List<int> decodedBytes = base64Decode(b64file);
-
-  if (!isAPK(decodedBytes)) {
+  if (!isAPK(b64file)) {
     throw FormatException('Wrong APK format');
   }
 
@@ -39,7 +37,7 @@ File parseAndSaveAPK(
   }
 
   File result = File('${env.workPath}/$package/${arch.name}.apk');
-  result.writeAsBytesSync(decodedBytes);
+  result.writeAsBytesSync(b64file);
   return result;
 }
 

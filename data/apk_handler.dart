@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import 'package:shelf_multipart/form_data.dart';
 import 'package:shelf_plus/shelf_plus.dart';
 
 import '../domain/entity/apk.dart';
@@ -83,21 +84,33 @@ class ApkHandler {
   Future<Response> uploadAPK(Request req) async {
     print('Request to upload an APK');
     String? package = req.params[_package];
-    final String query = await req.readAsString();
-    Map queryParams = jsonDecode(query);
-    String? body = queryParams['body'];
-    String? arch = queryParams[_arch];
-    String? token = queryParams[_token];
-
-    if (token == null) {
-      return Response.unauthorized(_missedToken);
+    if (!req.isMultipartForm) {
+      return Response.badRequest(body: 'Wrong data format');
     }
 
-    if (body == null || package == null || arch == null) {
+    if (package == null) {
       return Response.badRequest(body: _missedParams);
     }
 
     try {
+      Map<String, dynamic> data = {};
+      List<FormData> formData = await req.multipartFormData.toList();
+      for (var d in formData) {
+        if (d.filename == null) {
+          data[d.name] = await d.part.readString();
+        } else {
+          data[d.name] = await d.part.readBytes();
+        }
+      }
+
+      String? token = data['token'];
+      String? arch = data['arch'];
+      dynamic file = data['apk'];
+
+      if (token == null || arch == null || file == null) {
+        return Response.badRequest(body: _missedParams);
+      }
+
       Map<String, dynamic> tokenPayload = parseJWT(token, env.passPhrase);
       String? permissionStr = tokenPayload[_permission];
 
@@ -117,7 +130,7 @@ class ApkHandler {
       }
 
       File savedFile = parseAndSaveAPK(
-          b64file: body, package: package, arch: architecture, env: env);
+          b64file: file, package: package, arch: architecture, env: env);
 
       APK apk = APK(
           appId: appId,
