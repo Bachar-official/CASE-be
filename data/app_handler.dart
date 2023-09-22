@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:shelf_multipart/form_data.dart';
@@ -74,10 +75,10 @@ class AppHandler {
       Map<String, dynamic> data = {};
       List<FormData> formData = await req.multipartFormData.toList();
       for (var d in formData) {
-        if (data[d.name] is String) {
-          data[d.name] = await d.part.readString();
-        } else {
+        if (d.name == 'icon') {
           data[d.name] = await d.part.readBytes();
+        } else {
+          data[d.name] = await d.part.readString();
         }
       }
 

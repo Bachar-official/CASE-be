@@ -6,8 +6,25 @@ import '../domain/entity/arch.dart';
 import '../domain/entity/env.dart';
 
 /// Проверка, является ли файл из массива [bytes] картинкой PNG
-bool isPNG(List<int> bytes) {
-  return bytes[0] == 0x89 && bytes[1] == 0x50;
+bool isPNG(Uint8List? data) {
+  if (data == null) {
+    return false;
+  }
+  if (data.length < 8) {
+    return false; // Минимальная длина файла PNG - 8 байтов
+  }
+
+  // Магическая сигнатура PNG
+  final pngSignature = [137, 80, 78, 71, 13, 10, 26, 10];
+
+  for (int i = 0; i < pngSignature.length; i++) {
+    print('${data[i]} - ${pngSignature[i]}');
+    // if (data[i] != pngSignature[i]) {
+    //   return false; // Байты не совпадают
+    // }
+  }
+
+  return true; // Все байты совпадают с магической сигнатурой PNG
 }
 
 /// Проверка, является ли файл из массива [bytes] файлом APK
@@ -74,7 +91,7 @@ File? parseAndSaveIcon(
 
   final List<int> bytes = base64Decode(iconBase64);
 
-  if (!isPNG(bytes)) {
+  if (!isPNG(Uint8List.fromList(bytes))) {
     throw FormatException('Wrong icon format');
   }
 
