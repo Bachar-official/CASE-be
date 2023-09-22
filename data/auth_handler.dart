@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
+import 'package:shelf_multipart/form_data.dart';
 import 'package:shelf_plus/shelf_plus.dart';
 
 import '../domain/entity/env.dart';
@@ -60,11 +61,20 @@ class AuthHandler {
 
   Future<Response> authenticateCli(Request req) async {
     print('Request to authenticate');
+
+    if (!req.isMultipartForm) {
+      return Response.badRequest(body: 'Wrong data format');
+    }
+
     try {
-      final String query = await req.readAsString();
-      Map queryParams = jsonDecode(query);
-      String? username = queryParams['username'];
-      String? password = queryParams['password'];
+      Map<String, dynamic> data = {};
+      List<FormData> formData = await req.multipartFormData.toList();
+      for (var d in formData) {
+        data[d.name] = await d.part.readString();
+      }
+
+      String? username = data['username'];
+      String? password = data['password'];
       if (username == null || password == null) {
         return Response.badRequest(body: 'Missed username or password');
       }
