@@ -171,6 +171,16 @@ class DBRepository {
         });
   }
 
+  Future<bool> isApkExists(int appId, String arch) async {
+    PostgreSQLResult queryResult = await connection.query(
+        'SELECT * from apk WHERE app_id = @appId AND arch = @arch',
+        substitutionValues: {'appId': appId, 'arch': arch});
+    if (queryResult.isNotEmpty) {
+      return true;
+    }
+    return false;
+  }
+
   /// Обновить существующий APK
   Future<int?> updateAPK(String package, APK apk) async {
     int? appId = await getAppId(package);

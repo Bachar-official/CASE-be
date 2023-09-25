@@ -137,7 +137,17 @@ class ApkHandler {
           arch: architecture,
           size: savedFile.lengthSync(),
           path: savedFile.path);
-      int code = await repository.insertApk(apk);
+      int? code = 0;
+
+      if (await repository.isApkExists(appId, arch)) {
+        code = await repository.updateAPK(package, apk);
+      } else {
+        code = await repository.insertApk(apk);
+      }
+
+      if (code == null) {
+        return Response.internalServerError(body: 'Can\'t insert APK');
+      }
       return Response.ok('File saved with code $code');
     } on JWTExpiredException catch (e) {
       print(e.message);
