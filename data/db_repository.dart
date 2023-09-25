@@ -188,7 +188,7 @@ class DBRepository {
       return null;
     }
     return await connection.execute(
-        'UPDATE apk SET size = @size, path = @path, arch = @arch WHERE app_id = @appId',
+        'UPDATE apk SET size = @size, path = @path WHERE app_id = @appId AND arch = @arch',
         substitutionValues: {
           "size": apk.size,
           "path": apk.path,
