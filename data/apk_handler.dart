@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:shelf_multipart/form_data.dart';
@@ -17,12 +16,10 @@ class ApkHandler {
   final DBRepository repository;
   final Env env;
 
-  final String _token = 'token';
   final String _package = 'package';
   final String _permission = 'permission';
   final String _arch = 'arch';
 
-  final String _missedToken = 'Missed token';
   final String _tokenExpired = 'Token expired';
   final String _noPermissions = 'You don\'t have enough permissions';
   final String _missedParams = 'Missed query parameters';
@@ -108,6 +105,7 @@ class ApkHandler {
       dynamic file = data['apk'];
 
       if (token == null || arch == null || file == null) {
+        print('APK upload fails: missed params');
         return Response.badRequest(body: _missedParams);
       }
 
@@ -119,6 +117,7 @@ class ApkHandler {
       }
 
       if (!parsePermission(tokenPayload).canUpload) {
+        print('APK upload fails: no permissions');
         return Response.forbidden(_noPermissions);
       }
 
@@ -126,6 +125,7 @@ class ApkHandler {
 
       int? appId = await repository.getAppId(package);
       if (appId == null) {
+        print('APK upload fails: app with package $package no found');
         return Response.notFound('App with package $package not found');
       }
 
@@ -139,15 +139,21 @@ class ApkHandler {
           path: savedFile.path);
       int? code = 0;
 
-      if (await repository.isApkExists(appId, arch)) {
+      bool isApkExists = await repository.isApkExists(appId, arch);
+
+      if (isApkExists) {
+        print('APK exists. Updating.');
         code = await repository.updateAPK(package, apk);
       } else {
+        print('APK not exists. Inserting.');
         code = await repository.insertApk(apk);
       }
 
       if (code == null) {
+        print('Something went wrong with APK :(');
         return Response.internalServerError(body: 'Can\'t insert APK');
       }
+      print('APK saved!');
       return Response.ok('File saved with code $code');
     } on JWTExpiredException catch (e) {
       print(e.message);

@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:shelf_multipart/form_data.dart';
@@ -19,10 +18,6 @@ class AppHandler {
 
   final String _token = 'token';
   final String _package = 'package';
-  final String _icon = 'icon';
-  final String _version = 'version';
-  final String _name = 'name';
-  final String _description = 'description';
   final String _permission = 'permission';
 
   final String _missedToken = 'Missed token';
@@ -143,6 +138,7 @@ class AppHandler {
     }
 
     if (package == null) {
+      print('App update failed: wrong params.');
       return Response.badRequest(body: _missedParams);
     }
 
@@ -179,11 +175,13 @@ class AppHandler {
       }
 
       if (!parsePermission(tokenPayload).canUpdate) {
+        print('App update failed: no permission.');
         return Response.forbidden(_noPermissions);
       }
 
       App? app = await repository.findAppByPackage(package);
       if (app == null) {
+        print('App update failed: app with package $package not found.');
         return Response(404, body: 'App not found');
       }
       File? iconFile =
@@ -192,9 +190,10 @@ class AppHandler {
           iconPath: iconFile?.path,
           version: version,
           name: name,
+          apk: [],
           description: description);
-      print(newApp);
       var dbResult = await repository.updateApp(newApp);
+      print('App updated with code $dbResult!');
       return Response.ok('App updated with code $dbResult');
     } on JWTExpiredException catch (e) {
       print(e.message);
