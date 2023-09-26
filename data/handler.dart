@@ -28,6 +28,8 @@ class Handler {
 
   Future<void> init() async {
     router
+      // Запрос в корень. Можно использовать вместо пинга.
+      ..get('/', _hostAlive)
       // Управление запросами к сущностям приложения
       ..get('/apps', appHandler.getApps)
       ..get('/apps/<package>/apk', appHandler.getAppApks)
@@ -54,4 +56,6 @@ class Handler {
       print('Migration don\'t needed.');
     }
   }
+
+  Response _hostAlive(Request request) => Response.ok('I\'m alive!');
 }
